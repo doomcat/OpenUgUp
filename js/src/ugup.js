@@ -25,8 +25,8 @@
                 Strings: {
                     capitalizeFirstLetter: Function
                 },
-                _standard_ajax: Function,
-                _greasemonkey_ajax: Function,
+                _standard_ajax_bridge: Function,
+                _greasemonkey_ajax_bridge: Function,
                 format: Function,
                 Dawn: null,
                 Legacy: null
@@ -125,8 +125,34 @@ var UGUP = {
         return "fetchAll" + UGUP.Strings.capitalizeFirstLetter(def) + "Definitions";
     },
 
-    _wrapModelCallback: function(model, callback) {
+    _wrapModelCallback: function(modelType, callback) {
+        return function(response) {
+            var model;
+            if (response.status == 200) {
+                model = modelType.from(JSON.parse(response.responseText).data);
+            }
+            if (typeof callback === "function") {
+                callback(response, model);
+            }
+        }
+    },
 
+    _standard_ajax_bridge: function(params) {
+
+    },
+
+    _greasemonkey_ajax_bridge: function(params) {
+
+    },
+
+    format: function(str, args) {
+        for (var key in args) {
+            if (args.hasOwnProperty(key)) {
+                str = str.replace("{" + key + "}", args[key]);
+            }
+        }
+
+        return str;
     },
 
     Strings: {
@@ -136,16 +162,48 @@ var UGUP = {
         }
     },
 
-    _standard_ajax: function(params) {
-
-    },
-
-    _greasemonkey_ajax: function(params) {
-
-    },
-
-    format: function(str, args) {
-
+    Models: {
+        int: {
+            from: function(data) {
+                return parseInt(data);
+            }
+        },
+        string: {
+            from: function(data) {
+                return "" + data;
+            }
+        },
+        SIMPLE_ITEM: {
+            "itemtype": "int",
+            "itemid": "int",
+            from: function(data) {
+                for (var key in data) {
+                    if (data.hasOwnProperty(key) && key in this && UGUP.Models[this[key]]) {
+                        data[key] = UGUP.Models[this[key]].from(data[key]);
+                    }
+                }
+                return data;
+            }
+        },
+        ACHIEVEMENT: {
+            "achievementid": "int"
+        },
+        PROFILE:  {
+            "fname": "string",
+            "level": "int",
+            "gender": "string",
+            "classID": "USER_CLASS",
+            "guildID": "int",
+            "hairID": "int",
+            "skinID": "int",
+            "faceID": "int",
+            "platform": "PLATFORM",
+            "ugupoptout": "int",
+            "id": "string",
+            "equipment": ["SIMPLE_ITEM"],
+            "achievements": ["ACHIEVEMENT"],
+            "messages": ["string"]
+        }
     },
 
     Dawn:null, Legacy:null
@@ -182,11 +240,14 @@ UGUP.Legacy.prototype = {
     },
 
     ajax: function(params) {
-        if (this.cfg.gm_mode) {
-            UGUP._greasemonkey_ajax(params);
+        if (typeof this.cfg.customAjaxBridge === "function") {
+            this.cfg.customAjaxBridge(params);
+        }
+        else if (this.cfg.gm_mode) {
+            UGUP._greasemonkey_ajax_bridge(params);
         }
         else {
-            UGUP._standard_ajax(params);
+            UGUP._standard_ajax_bridge(params);
         }
     },
 
