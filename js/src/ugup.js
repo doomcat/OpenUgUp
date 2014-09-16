@@ -1,5 +1,5 @@
 /**
- * @namespace
+ * @namespace UGUP
  * @type {
             {
                 GAME: {
@@ -13,27 +13,45 @@
                     NG: string
                 },
                 API_DEFINITION_TYPES: Array,
-                _buildUrls: Function,
-                _buildDefinitionFetchFns: Function,
-                _createDefByIdFn: Function,
-                _createDefListFn: Function,
-                _defTypeToDefKey: Function,
-                _defTypeToDefListKey: Function,
-                _defTypeToDefnKey: Function,
-                _defTypeToDefnListKey: Function,
-                _wrapModelCallback: Function,
-                Strings: {
-                    capitalizeFirstLetter: Function
+                Defn: {
+                    _buildDefinitionFetchFns: Function,
+                    _createDefByIdFn: Function,
+                    _createDefListFn: Function,
+                    _defTypeToDefKey: Function,
+                    _defTypeToDefListKey: Function,
+                    _defTypeToDefnKey: Function,
+                    _defTypeToDefnListKey: Function
                 },
-                _standard_ajax_bridge: Function,
-                _greasemonkey_ajax_bridge: Function,
-                format: Function,
+                Ajax: {
+                    _standard_ajax_bridge: Function,
+                    _greasemonkey_ajax_bridge: Function,
+                    injectAjaxParams: Function
+                },
+                Strings: {
+                    format: Function(string, Array),
+                    capitalizeFirstLetter: Function(string)
+                },
+                Urls: {
+                    _buildUrls: Function()
+                },
+                Arrays: {
+                    isArray: Function(Object)
+                },
+                model: Function(Object),
+                Models: {
+                    int: {from: Function(Object)},
+                    string: {from: Function(Object)} ,
+                    SIMPLE_ITEM: {from: Function(Object)} ,
+                    ACHIEVEMENT: {from: Function(Object)} ,
+                    PROFILE: {from: Function(Object)} ,
+                    _defaultFromMethod: Function(Object),
+                    _wrapModelCallback: Function(UGUP.model, callback)
+                },
                 Dawn: null,
-                Legacy: null
+                Legacy: null,
             }
         }
  */
-
 var UGUP = {
     /**
      * Game enum of 5PG games with UGUP
@@ -60,135 +78,170 @@ var UGUP = {
                             "magic", "tactic", "enchant",
                             "itemset", "pet", "recipe"],
 
-    _buildUrls: function(root) {
-        var urls = {};
+    Defn: {
+        _buildDefinitionFetchFns: function() {
+            var defns = {};
 
-        urls.ROOT = root || "http://ugup.5thplanetgames.com/api/";
-
-        urls.USER_ID = urls.ROOT + "profile/id/[username]";
-        urls.PROFILE = urls.ROOT + "profile/[id]";
-        urls.RAID = urls.ROOT + "raid/hash/[id]/[hash]";
-
-        for (var i = UGUP.API_DEFINITION_TYPES.length - 1; i >= 0; i--) {
-            var path = UGUP.API_DEFINITION_TYPES[i];
-            urls[UGUP._defTypeToDefKey(path)] = urls.ROOT + path + "/definition/id/[id]";
-            urls[UGUP._defTypeToDefListKey(path)] = urls.ROOT + path + "/definition/all";
-        }
-
-        return urls;
-    },
-
-    _buildDefinitionFetchFns: function() {
-        var defns = {};
-
-        for (var i = UGUP.API_DEFINITION_TYPES.length - 1; i >= 0; i--) {
-            var path = UGUP.API_DEFINITION_TYPES[i];
-            defns[UGUP._defTypeToDefnKey(path)] = UGUP._createDefByIdFn(path);
-            defns[UGUP._defTypeToDefListKey(path)] = UGUP._createDefListFn(path);
-        }
-
-
-        return defns;
-    },
-
-    _createDefByIdFn: function(path) {
-        return function(id, callback) {
-            this.ajax({
-                url: UGUP.format(this.urls[UGUP._defTypeToDefKey(path)], {"id": id}),
-                callback: UGUP._wrapModelCallback(UGUP.Models[UGUP._defTypeToDefKey(path)], callback)
-            });
-        };
-    },
-
-    _createDefListFn: function(path) {
-        return function(callback) {
-            this.ajax({
-                url: UGUP.format(UGUP._defTypeToDefListKey(path)),
-                callback: UGUP._wrapModelCallback(UGUP.Models[UGUP._defTypeToDefKey(path)], callback)
-            });
-        };
-    },
-
-    _defTypeToDefKey: function(def) {
-        return def.toUpperCase() + "_DEFINITION";
-    },
-
-    _defTypeToDefListKey: function(def) {
-        return "LIST_" + def.toUpperCase() + "_DEFINITIONS";
-    },
-
-    _defTypeToDefnKey: function(def) {
-        return "fetch" + UGUP.Strings.capitalizeFirstLetter(def) + "Definition";
-    },
-
-    _defTypeToDefnListKey: function(def) {
-        return "fetchAll" + UGUP.Strings.capitalizeFirstLetter(def) + "Definitions";
-    },
-
-    _wrapModelCallback: function(modelType, callback) {
-        return function(response) {
-            var model;
-            if (response.status == 200) {
-                model = modelType.from(JSON.parse(response.responseText).data);
+            for (var i = UGUP.API_DEFINITION_TYPES.length - 1; i >= 0; i--) {
+                var path = UGUP.API_DEFINITION_TYPES[i];
+                defns[UGUP.Defn._defTypeToDefnKey(path)] = UGUP.Defn._createDefByIdFn(path);
+                defns[UGUP.Defn._defTypeToDefnListKey(path)] = UGUP.Defn._createDefListFn(path);
             }
-            if (typeof callback === "function") {
-                callback(response, model);
-            }
+
+
+            return defns;
+        },
+
+        _createDefByIdFn: function(path) {
+            return function(id, callback) {
+                this.ajax({
+                    url: this.urls[UGUP.Defn._defTypeToDefKey(path)],
+                    urlParams: {"id": id},
+                    callback: UGUP.Models._wrapModelCallback(UGUP.Models[UGUP.Models._defTypeToDefKey(path)], callback)
+                });
+            };
+        },
+
+        _createDefListFn: function(path) {
+            return function(callback) {
+                this.ajax({
+                    url: UGUP.Defn._defTypeToDefListKey(path),
+                    callback: UGUP.Models._wrapModelCallback(UGUP.Models[UGUP.Defn._defTypeToDefKey(path)], callback)
+                });
+            };
+        },
+
+        _defTypeToDefKey: function(def) {
+            return def.toUpperCase() + "_DEFINITION";
+        },
+
+        _defTypeToDefListKey: function(def) {
+            return "LIST_" + def.toUpperCase() + "_DEFINITIONS";
+        },
+
+        _defTypeToDefnKey: function(def) {
+            return "fetch" + UGUP.Strings.capitalizeFirstLetter(def) + "Definition";
+        },
+
+        _defTypeToDefnListKey: function(def) {
+            return "fetchAll" + UGUP.Strings.capitalizeFirstLetter(def) + "Definitions";
         }
     },
 
-    _standard_ajax_bridge: function(params) {
-
-    },
-
-    _greasemonkey_ajax_bridge: function(params) {
-
-    },
-
-    format: function(str, args) {
-        for (var key in args) {
-            if (args.hasOwnProperty(key)) {
-                str = str.replace("{" + key + "}", args[key]);
+    Ajax: {
+        _standard_ajax_bridge: function(params) {
+            try {
+                var req = new(this.XMLHttpRequest || ActiveXObject)('MSXML2.XMLHTTP.3.0');
+                req.open(params.data ? 'POST' : 'GET', params.url, 1);
+                req.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+                req.setRequestHeader('Content-type', 'application/x-www-form-urlencoded');
+                req.onreadystatechange = function () {
+                    req.readyState > 3 && params.callback && params.callback(req);
+                };
+                req.send(params.data)
+            } catch (e) {
+                window.console && console.log(e);
             }
-        }
+        },
 
-        return str;
+        _greasemonkey_ajax_bridge: function(params) {
+
+        },
+
+        /**
+         *
+         * @param {UGUP.Ajax.Params} params
+         * @param {UGUP.Config} cfg
+         * @returns {UGUP.Ajax.Params}
+         */
+        injectAjaxParams: function(params, cfg) {
+            params.originalUrl = params.url;
+            params.url = UGUP.Strings.format(params.url, params.urlParams);
+            if (params.indexOf("?") < 0) {
+                params.url += "?";
+            }
+
+            if (cfg.apiKey) {
+
+            }
+
+            return params;
+        }
     },
 
     Strings: {
+        format: function(str, args) {
+            if (args && typeof args === "object") {
+                for (var key in args) {
+                    if (args.hasOwnProperty(key)) {
+                        str = str.replace("{" + key + "}", args[key]);
+                    }
+                }
+            }
+
+            return str;
+        },
+
         capitalizeFirstLetter: function (str)
         {
             return str.charAt(0).toUpperCase() + str.slice(1);
         }
     },
 
+    Urls: {
+        _buildUrls: function(root) {
+            var urls = {};
+
+            urls.ROOT = root || "http://ugup.5thplanetgames.com/api/";
+
+            urls.USER_ID = urls.ROOT + "profile/id/[username]";
+            urls.PROFILE = urls.ROOT + "profile/[id]";
+            urls.RAID = urls.ROOT + "raid/hash/[id]/[hash]";
+
+            for (var i = UGUP.API_DEFINITION_TYPES.length - 1; i >= 0; i--) {
+                var path = UGUP.API_DEFINITION_TYPES[i];
+                urls[UGUP.Defn._defTypeToDefKey(path)] = urls.ROOT + path + "/definition/id/[id]";
+                urls[UGUP.Defn._defTypeToDefListKey(path)] = urls.ROOT + path + "/definition/all";
+            }
+
+            return urls;
+        }
+    },
+
+    Arrays: {
+        isArray: function(obj) {
+            // Might not be the best ever
+            // Borrowed from https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/isArray
+            return Array.isArray ? Array.isArray(obj) : Object.prototype.toString.call(obj) === '[object Array]';
+        }
+    },
+
+    model: function Model(modelConfig) {
+        if (!modelConfig.from) {
+            modelConfig.from = UGUP.Models._defaultFromMethod;
+        }
+        return modelConfig;
+    },
+
     Models: {
-        int: {
+        int: UGUP.model({
             from: function(data) {
                 return parseInt(data);
             }
-        },
-        string: {
+        }),
+        string: UGUP.model({
             from: function(data) {
                 return "" + data;
             }
-        },
-        SIMPLE_ITEM: {
+        }),
+        SIMPLE_ITEM: UGUP.model({
             "itemtype": "int",
-            "itemid": "int",
-            from: function(data) {
-                for (var key in data) {
-                    if (data.hasOwnProperty(key) && key in this && UGUP.Models[this[key]]) {
-                        data[key] = UGUP.Models[this[key]].from(data[key]);
-                    }
-                }
-                return data;
-            }
-        },
-        ACHIEVEMENT: {
+            "itemid": "int"
+        }),
+        ACHIEVEMENT: UGUP.model({
             "achievementid": "int"
-        },
-        PROFILE:  {
+        }),
+        PROFILE: UGUP.model({
             "fname": "string",
             "level": "int",
             "gender": "string",
@@ -200,9 +253,45 @@ var UGUP = {
             "platform": "PLATFORM",
             "ugupoptout": "int",
             "id": "string",
-            "equipment": ["SIMPLE_ITEM"],
-            "achievements": ["ACHIEVEMENT"],
-            "messages": ["string"]
+            "equipment": "SIMPLE_ITEM", // array
+            "achievements": "ACHIEVEMENT", // array
+            "messages": "string" // array
+        }),
+        _defaultFromMethod: function(data) {
+            var result = {raw: data};
+            // For every key in the data
+            for (var key in data) {
+                if (data.hasOwnProperty(key) ) {
+                    // If this model has that key and there is a UGUP model for it
+                    if (key in this && UGUP.Models[this[key]]) {
+                        if (UGUP.Arrays.isArray(data[key])) {
+                            result[key] = [];
+                            for (var i = 0; i < data[key].length; i++) {
+                                result[key].push(UGUP.Models[this[key]].from(data[key][i]));
+                            }
+                        }
+                        else {
+                            result[key] = UGUP.Models[this[key]].from(data[key]);
+                        }
+                    }
+                    // Just take the raw value
+                    else {
+                        result[key] = data[key];
+                    }
+                }
+            }
+            return result;
+        },
+        _wrapModelCallback: function(modelType, callback) {
+            return function(response) {
+                var model;
+                if (response.status == 200) {
+                    model = modelType.from(JSON.parse(response.responseText).data);
+                }
+                if (typeof callback === "function") {
+                    callback(response, model);
+                }
+            }
         }
     },
 
@@ -210,51 +299,96 @@ var UGUP = {
 };
 
 /**
+ * @typedef {{
+        apiKey: string,
+        game: UGUP.GAME,
+        platform: UGUP.PLATFORM,
+
+        urlRoot: string,
+        customAjaxBridge: Function(UGUP.Ajax.Params),
+        useGMAjaxBridge: boolean
+    }}
+ */
+UGUP.Config;
+
+/**
+ * @typedef {{
+        url: string,
+        urlParams: Object.<string, string>
+        callback: Function(XMLHttpRequest, UGUP.model?)
+    }}
+ */
+UGUP.Ajax.Params;
+
+
+
+/**
  * Create a new instance of a Dawn UGUP connector
- * @type {Function}
+ * @constructor
+ * @param {UGUP.Config} cfg
  */
 UGUP.Dawn = function DawnConnector(cfg) {
     if (typeof this.initialize === "function") {
-        cfg.__game = UGUP.GAME.DAWN;
+        cfg.game = UGUP.GAME.DAWN;
         this.initialize(cfg);
     }
 };
 
 /**
  * Create a new instance of a Legacy UGUP connector
- * @type {Function}
+ * @constructor
+ * @param {UGUP.Config} cfg
  */
 UGUP.Legacy = function LegacyConnector(cfg) {
     if (typeof this.initialize === "function") {
-        cfg.__game = UGUP.GAME.LEGACY;
+        cfg.game = UGUP.GAME.LEGACY;
         this.initialize(cfg);
     }
 };
 
+/**
+ *
+ * @type {
+            {
+               initialize: Function,
+               ajax: Function,
+               fetchUserId: Function,
+               fetchUserProfileById: Function,
+               fetchUserProfileByUsername: Function
+
+            }
+        }
+ */
 UGUP.Dawn.prototype =
 UGUP.Legacy.prototype = {
 
+    /**
+     *
+     * @param {UGUP.Config} cfg
+     */
     initialize: function(cfg) {
         this.cfg = cfg;
-        this.urls = UGUP._buildUrls(cfg.urlRoot);
+        this.urls = UGUP.Urls._buildUrls(cfg.urlRoot);
     },
 
     ajax: function(params) {
+        params = UGUP.Ajax.injectAjaxParams(params, this.cfg);
         if (typeof this.cfg.customAjaxBridge === "function") {
             this.cfg.customAjaxBridge(params);
         }
-        else if (this.cfg.gm_mode) {
-            UGUP._greasemonkey_ajax_bridge(params);
+        else if (this.cfg.useGMAjaxBridge) {
+            UGUP.Ajax._greasemonkey_ajax_bridge(params);
         }
         else {
-            UGUP._standard_ajax_bridge(params);
+            UGUP.Ajax._standard_ajax_bridge(params);
         }
     },
 
     fetchUserId: function(username, callback) {
         this.ajax({
-            url: UGUP.format(this.urls.USER_ID, {"username": username}),
-            callback: UGUP._wrapModelCallback(callback, UGUP.Models.USER_ID)
+            url: this.urls.USER_ID,
+            urlParams: {"username": username},
+            callback: UGUP.Models._wrapModelCallback(callback, UGUP.Models.USER_ID)
         });
     },
 
@@ -269,7 +403,7 @@ UGUP.Legacy.prototype = {
 };
 
 (function (){
-    var defns = UGUP._buildDefinitionFetchFns();
+    var defns = UGUP.Defn._buildDefinitionFetchFns();
     for (var defnName in defns) {
         if (defns.hasOwnProperty(defnName)) {
             UGUP.Dawn.prototype[defnName] = defns[defnName];
