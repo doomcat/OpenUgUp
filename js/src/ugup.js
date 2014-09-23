@@ -4,13 +4,14 @@
             {
                 GAME: {
                     DAWN: string,
-                    LEGACY: string
+                    SUNS: string
                 },
                 PLATFORM: {
-                    KONG: string,
-                    ARMOR: string,
-                    FB: string,
-                    NG: string
+                    KONG: Object,
+                    ARMOR: Object,
+                    FB: Object,
+                    NG: Object,
+                    valueOf: Function(number)
                 },
                 API_DEFINITION_TYPES: Array,
                 Defn: {
@@ -39,16 +40,16 @@
                 },
                 model: Function(Object),
                 Models: {
-                    int: {from: Function(Object)},
-                    string: {from: Function(Object)} ,
-                    SIMPLE_ITEM: {from: Function(Object)} ,
-                    ACHIEVEMENT: {from: Function(Object)} ,
-                    PROFILE: {from: Function(Object)} ,
+                    int: Object,
+                    string: Object,
+                    SIMPLE_ITEM: Object,
+                    ACHIEVEMENT: Object,
+                    PROFILE: Object,
                     _defaultFromMethod: Function(Object),
                     _wrapModelCallback: Function(UGUP.model, callback)
                 },
                 Dawn: null,
-                Legacy: null,
+                Suns: null,
             }
         }
  */
@@ -58,16 +59,44 @@ var UGUP = {
      */
     GAME: {
         DAWN: "dawn",
-        LEGACY: "legacy"
+        SUNS: "suns"
     },
     /**
      * Platform enum of 5PG platforms
      */
     PLATFORM: {
-        KONG: "kongregate",
-        ARMOR: "armor",
-        FB: "facebook",
-        NG: "newgrounds"
+        FB: {
+            name: "Facebook",
+            key: "facebook",
+            id: 1
+        },
+        KONG: {
+            name: "Kongregate",
+            key: "kongregate",
+            id: 2
+        },
+        ARMOR: {
+            name: "Armor Games",
+            key: "armor",
+            id: 3
+        },
+        NG: {
+            name: "Newgrounds",
+            key: "newgrounds",
+            id: 4
+        },
+
+        valueOf: function(ordinal) {
+            var ret;
+            for (var platform in UGUP.PLATFORM) {
+                // Using == for type coercion in case we're given a string of the ordinal
+                if (UGUP.PLATFORM.hasOwnProperty(platform) && UGUP.PLATFORM[platform].id == ordinal) {
+                    ret = UGUP.PLATFORM[platform];
+                    break;
+                }
+            }
+            return ret;
+        }
     },
 
     /**
@@ -105,7 +134,7 @@ var UGUP = {
         _createDefListFn: function(path) {
             return function(callback) {
                 this.ajax({
-                    url: UGUP.Defn._defTypeToDefListKey(path),
+                    url: this.urls[UGUP.Defn._defTypeToDefListKey(path)],
                     callback: UGUP.Models._wrapModelCallback(UGUP.Models[UGUP.Defn._defTypeToDefKey(path)], callback)
                 });
             };
@@ -130,9 +159,10 @@ var UGUP = {
 
     Ajax: {
         _standard_ajax_bridge: function(params) {
+            // Modified from https://gist.github.com/Xeoncross/7663273
             try {
-                var req = new(this.XMLHttpRequest || ActiveXObject)('MSXML2.XMLHTTP.3.0');
-                req.open(params.data ? 'POST' : 'GET', params.url, 1);
+                var req = new(window.XMLHttpRequest || window.ActiveXObject)('MSXML2.XMLHTTP.3.0');
+                req.open(params.data ? 'POST' : 'GET', params.url, true);
                 req.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
                 req.setRequestHeader('Content-type', 'application/x-www-form-urlencoded');
                 req.onreadystatechange = function () {
@@ -157,12 +187,26 @@ var UGUP = {
         injectAjaxParams: function(params, cfg) {
             params.originalUrl = params.url;
             params.url = UGUP.Strings.format(params.url, params.urlParams);
-            if (params.indexOf("?") < 0) {
-                params.url += "?";
-            }
+
+            var queryParams = "";
 
             if (cfg.apiKey) {
+                queryParams += "apikey=" + cfg.apiKey;
+            }
+            if (cfg.game) {
+                if (queryParams) queryParams += "&";
+                queryParams += "game=" + cfg.game;
+            }
+            if (cfg.platform) {
+                if (queryParams) queryParams += "&";
+                queryParams += "platform=" + (typeof cfg.platform === "string" ? cfg.platform : cfg.platform.key);
+            }
 
+            if (queryParams) {
+                if (params.url.indexOf("?") < 0) {
+                    params.url += "?";
+                }
+                params.url += queryParams;
             }
 
             return params;
@@ -174,7 +218,7 @@ var UGUP = {
             if (args && typeof args === "object") {
                 for (var key in args) {
                     if (args.hasOwnProperty(key)) {
-                        str = str.replace("{" + key + "}", args[key]);
+                        str = str.replace("[" + key + "]", args[key]);
                     }
                 }
             }
@@ -224,28 +268,36 @@ var UGUP = {
     },
 
     Models: {
-        int: UGUP.model({
+        int: {
             from: function(data) {
                 return parseInt(data);
             }
-        }),
-        string: UGUP.model({
+        },
+        string: {
             from: function(data) {
                 return "" + data;
             }
-        }),
-        SIMPLE_ITEM: UGUP.model({
-            "itemtype": "int",
-            "itemid": "int"
-        }),
-        ACHIEVEMENT: UGUP.model({
+        },
+        ACHIEVEMENT: {
             "achievementid": "int"
-        }),
-        PROFILE: UGUP.model({
+        },
+        PLATFORM: {
+            // Platform expects to consume an int (or string of int) and
+            from: function(data) {
+                return UGUP.PLATFORM.valueOf(data);
+            }
+        },
+        PLAYER_CLASS: {
+            // Platform expects to consume an int (or string of int) and
+            from: function(data) {
+                return UGUP.PlayerClasses.fromId(parseInt(data));
+            }            
+        },
+        PROFILE: {
             "fname": "string",
             "level": "int",
             "gender": "string",
-            "classID": "USER_CLASS",
+            "classID": "PLAYER_CLASS",
             "guildID": "int",
             "hairID": "int",
             "skinID": "int",
@@ -256,9 +308,21 @@ var UGUP = {
             "equipment": "SIMPLE_ITEM", // array
             "achievements": "ACHIEVEMENT", // array
             "messages": "string" // array
-        }),
+        },
+        SIMPLE_ITEM: {
+            "itemtype": "int",
+            "itemid": "int"
+        },
+        USER_ID: {
+            // USER_ID is kind of sneaky in that there isn't anything at the top level of this, it's just a string result
+            from: function(data) {
+                return data;
+            }
+        },
+
+        // -- Models Helper Methods -- //
         _defaultFromMethod: function(data) {
-            var result = {raw: data};
+            var result = {_raw: data};
             // For every key in the data
             for (var key in data) {
                 if (data.hasOwnProperty(key) ) {
@@ -284,19 +348,268 @@ var UGUP = {
         },
         _wrapModelCallback: function(modelType, callback) {
             return function(response) {
-                var model;
+                var model, parsedJSON;
+                // Check the base HTTP response code, we're expecting pure 200, no other 20x codes
                 if (response.status == 200) {
-                    model = modelType.from(JSON.parse(response.responseText).data);
+                    // Parse the JSON
+                    var tmpJson = JSON.parse(response.responseText);
+                    // Get the result object
+                    parsedJSON = tmpJson.result;
+
+                    // If the service reports a data success
+                    if (!!tmpJson.success) {
+                        // If we know how to parse this kind of model
+                        if (modelType && typeof modelType.from === "function") {
+                            // Parse into the model
+                            model = modelType.from(parsedJSON);
+                        }
+                        else {
+                            // Don't know how to deal with this
+                            // TODO Better logging mechanism
+                            window.console && window.console.warn("UGUP.JS: Failed to process model from type: ", modelType);
+                        }
+                    }
+                    else {
+                        // Some kind of failure in the query. Log it
+                        // TODO Better logging mechanism
+                        // TODO Specific handling of known error codes
+                        window.console && window.console.error("UGUP.JS: Failed API call. Code: ", tmpJson.code, " Reason: ", tmpJson.reason);
+                    }
                 }
                 if (typeof callback === "function") {
-                    callback(response, model);
+                    callback(response, model || parsedJSON);
                 }
             }
         }
     },
 
-    Dawn:null, Legacy:null
+    PlayerClasses: {
+        Tier0: [{
+            id: 1,
+            dawn: {
+                name: "Peon",
+                text: "",
+                icon: ""
+            },
+            suns: {
+                name: "Prisoner",
+                text: "",
+                icon: "prisoner.jpg"
+            },
+            energyTimer: 120,
+            staminaTimer: 120
+        }],
+        Tier1: [{
+            id: 2,
+            dawn: {
+                name: "Battlemaster",
+                text: "",
+                icon: ""
+            },
+            suns: {
+                name: "Soldier",
+                text: "Soldiers recover their Stamina more quickly, so they may throw themselves into battle more often. But they regain Energy more slowly.",
+                icon: "soldier.jpg"
+            },
+            energyTimer: 120,
+            staminaTimer: 100
+        },{
+            id: 3,
+            dawn: {
+                name: "Wanderer",
+                text: "",
+                icon: ""
+            },
+            suns: {
+                name: "Pilot",
+                text: "Pilots recover their Energy faster, and can therefore complete missions more swiftly. However, they regain Stamina more slowly.",
+                icon: "pilot.jpg"
+            },
+            energyTimer: 100,
+            staminaTimer: 120
+        },{
+            id: 4,
+            dawn: {
+                name: "Adventurer",
+                text: "",
+                icon: ""
+            },
+            suns: {
+                name: "Explorer",
+                text: "Explorers walk a middle path, regenerating both Energy and Stamina at a moderate rate.",
+                icon: "explorer.jpg"
+            },
+            energyTimer: 110,
+            staminaTimer: 110
+        }],
+        Tier2: [{
+            id: 5,
+            dawn: {
+                name: "Warlord",
+                text: "",
+                icon: ""
+            },
+            suns: {
+                name: "Space Reaver",
+                text: "Space Reavers love to lead their comrades into battle against interstellar threats. Their Stamina recharges quickly, but their Energy regenerates slowly.",
+                icon: "spacereaver.jpg"
+            },
+            energyTimer: 110,
+            staminaTimer: 90
+        },{
+            id: 6,
+            dawn: {
+                name: "World-Strider",
+                text: "",
+                icon: ""
+            },
+            suns: {
+                name: "Hot Shot",
+                text: "Hot Shots are daredevil pilots, whose quickly recharging Energy reserves allow them to complete missions more quickly. But their Stamina recharges more slowly.",
+                icon: "hotshot.jpg"
+            },
+            energyTimer: 90,
+            staminaTimer: 110
+        },{
+            id: 7,
+            dawn: {
+                name: "Champion",
+                text: "",
+                icon: ""
+            },
+            suns: {
+                name: "Spacefarer",
+                text: "Spacefarers prefer to divide their exploits between missions and epic battles. They regenerate both Stamina and Energy at a moderate rate.",
+                icon: "spacefarer.jpg"
+            },
+            energyTimer: 100,
+            staminaTimer: 100
+        }],
+        Tier3: [{
+            id: 8,
+            dawn: {
+                name: "Warmaster",
+                text: "",
+                icon: ""
+            },
+            suns: {
+                name: "Star-Slayer",
+                text: "Star-Slayers live for battle. Their days are filled with laser fire, and the death screams of their enemies. Their Stamina replenishes quickly, allowing them to throw themselves back into combat. But their Energy recovers more slowly.",
+                icon: "starslayer.jpg"
+            },
+            energyTimer: 100,
+            staminaTimer: 80
+        },{
+            id: 9,
+            dawn: {
+                name: "Realm-Walker",
+                text: "",
+                icon: ""
+            },
+            suns: {
+                name: "Space Ace",
+                text: "Space Aces are exceptional pilots, with amazing reflexes and nerves of steel. Their Energy regeneration is phenomenal, allowing them to spend countless hours in the cockpit, though they recover Stamina more slowly.",
+                icon: "spaceace.jpg"
+            },
+            energyTimer: 80,
+            staminaTimer: 100
+        },{
+            id: 10,
+            dawn: {
+                name: "Hero",
+                text: "",
+                icon: ""
+            },
+            suns: {
+                name: "Void-Treader",
+                text: "Void-Treaders seek a range of challenges. Sometimes they undertake heroic missions, at other times they battle their rivals for glory. They forsake larger bonuses, preferring to recover both Energy and Stamina at a moderate rate.",
+                icon: "voidtreader.jpg"
+            },
+            energyTimer: 90,
+            staminaTimer: 90
+        }],
+        Tier4: [{
+            id: 11,
+            dawn: {
+                name: "Luminary",
+                text: "",
+                icon: ""
+            },
+            suns: {
+                name: "Galactic Avenger",
+                text: "Galactic Avengers truly know what it means to be interstellar heroes. Their Energy and Stamina recover at an exceptional rate, allowing them to perform a lifetime’s worth of daring deeds each day.",
+                icon: "galacticavenger.jpg"
+            },
+            energyTimer: 75,
+            staminaTimer: 75
+        }],
+        Tier5: [{
+            id: 12,
+            dawn: {
+                name: "Immortal",
+                text: "",
+                icon: ""
+            },
+            suns: {
+                name: "Immortal",
+                text: "Only the greatest of heroes can be deemed an Immortal -- one whose name and deeds will live forever. You are now among that select few, and have been awarded a special Tactics and Sidekicks for your remarkable achievement.",
+                icon: "imortalclass.jpg"
+            },
+            energyTimer: 45,
+            staminaTimer: 45
+        }],
+        Tier6: [{
+            id: 14,
+            dawn: {
+                name: "Immortal Drake Slayer",
+                text: "",
+                icon: ""
+            },
+            suns: {
+                name: "Immortal Sian Hero",
+                text: "Your name is eternal, and no one will forget the part you\'ve played in the war against the Centurians. Few shall ever possess the Tactic and Sidekick which are now yours to wield and display.",
+                icon: "class_immortal_sian_hero.jpg"
+            },
+            energyTimer: 45,
+            staminaTimer: 45
+        }],
+
+        fromId: function(classId) {
+            var pc = UGUP.PlayerClasses,
+                cache = pc.idCache;
+            // If we've made the cache, check it
+            if (cache) {
+                return cache[classId];
+            }
+            // Haven't made the cache yet? Generate it now, then try again
+            else {
+                pc.idCache = cache = {};
+                for (var tier in pc) {
+                    if (pc.hasOwnProperty(tier) && typeof pc[tier] !== "function") {
+                        for (var i = 0; i < pc[tier].length; i++) {
+                            var playerClass = pc[tier][i];
+                            cache[playerClass.id] = playerClass;
+                        }
+                    }
+                }
+
+                // Now that we've generated the cache, try again
+                return pc.fromId(classId);
+            }
+        }
+    },
+
+    Dawn:null, Suns:null
 };
+
+// Prepare the models
+(function (){
+    for (var model in UGUP.Models) {
+        if (UGUP.Models.hasOwnProperty(model) && model && typeof UGUP.Models[model] === "object") {
+            UGUP.Models[model] = UGUP.model(UGUP.Models[model]);
+        }
+    }
+})();
 
 /**
  * @typedef {{
@@ -335,13 +648,13 @@ UGUP.Dawn = function DawnConnector(cfg) {
 };
 
 /**
- * Create a new instance of a Legacy UGUP connector
+ * Create a new instance of a Suns UGUP connector
  * @constructor
  * @param {UGUP.Config} cfg
  */
-UGUP.Legacy = function LegacyConnector(cfg) {
+UGUP.Suns = function SunsConnector(cfg) {
     if (typeof this.initialize === "function") {
-        cfg.game = UGUP.GAME.LEGACY;
+        cfg.game = UGUP.GAME.SUNS;
         this.initialize(cfg);
     }
 };
@@ -360,7 +673,7 @@ UGUP.Legacy = function LegacyConnector(cfg) {
         }
  */
 UGUP.Dawn.prototype =
-UGUP.Legacy.prototype = {
+UGUP.Suns.prototype = {
 
     /**
      *
@@ -388,20 +701,27 @@ UGUP.Legacy.prototype = {
         this.ajax({
             url: this.urls.USER_ID,
             urlParams: {"username": username},
-            callback: UGUP.Models._wrapModelCallback(callback, UGUP.Models.USER_ID)
+            callback: UGUP.Models._wrapModelCallback(UGUP.Models.USER_ID, callback)
         });
     },
 
     fetchUserProfileById: function(userId, callback) {
-
+        this.ajax({
+            url: this.urls.PROFILE,
+            urlParams: {"id": userId},
+            callback: UGUP.Models._wrapModelCallback(UGUP.Models.PROFILE, callback)
+        });
     },
 
     fetchUserProfileByUsername: function(username, callback) {
-
+        this.fetchUserId(username, function(response, model) {
+            this.fetchUserProfileById(model, callback);
+        }.bind(this));
     }
 
 };
 
+// Prepare the query functions
 (function (){
     var defns = UGUP.Defn._buildDefinitionFetchFns();
     for (var defnName in defns) {
