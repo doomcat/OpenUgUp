@@ -104,8 +104,67 @@ var UGUP = {
      */
     API_DEFINITION_TYPES: ["raid", "equipment", "mount", "collection",
                             "general", "troop", "legion",
-                            "magic", "tactic", "enchant",
+                            "magic", /* "tactic", <- seems broken */ "enchant",
                             "itemset", "pet", "recipe"],
+
+    Cache: {
+        /**
+         *
+         * @param {string|number} typeKey
+         * @param {UGUP.model|[UGUP.model]} models
+         */
+        storeData: function(typeKey, models) {
+            // If models is null, don't try to cache anything
+            if (models) {
+                // If it's not an array, just make it an array of one for consistency
+                if (!UGUP.Arrays.isArray(models)) {
+                    models = [models];
+                }
+                // If it's already an array, assume that it's a full cache
+                else {
+                    UGUP.Cache._fullCache[typeKey] = true;
+                }
+
+                if (!UGUP.Cache[typeKey]) {
+                    UGUP.Cache[typeKey] = {};
+                }
+
+                for (var i = 0; i < models.length; i++) {
+                    var model = models[i];
+                    UGUP.Cache[typeKey][model.id] = model;
+                }
+            }
+        },
+
+        /**
+         * @param {string|number} typeKey
+         * @param {string?|number?} modelId
+         */
+        fetchData: function(typeKey, modelId) {
+            var cache = UGUP.Cache[typeKey];
+            if (cache) {
+                // Looking for a single model from the cache
+                if (modelId) {
+                    return cache[modelId];
+                }
+                // Looking for a complete model listing from the cache. First make sure the cache is full
+                else if (UGUP.Cache._fullCache[typeKey]) {
+                    var resultArr = [];
+
+                    for (var i in cache) {
+                        if (cache.hasOwnProperty(i)) {
+                            resultArr.push(cache[i]);
+                            // TODO: Sort them by .id
+                        }
+                    }
+
+                    return resultArr;
+                }
+            }
+        },
+
+        _fullCache: {}
+    },
 
     Defn: {
         _buildDefinitionFetchFns: function() {
@@ -123,19 +182,33 @@ var UGUP = {
 
         _createDefByIdFn: function(path) {
             return function(id, callback) {
+                if (!UGUP.Models[UGUP.Defn._defTypeToDefKey(path)]) {
+                    window.console && window.console.warn("UGUP.JS: Failed to located model for '" + path + "': " + UGUP.Defn._defTypeToDefKey(path));
+                }
+                // TODO: Check Cache First
                 this.ajax({
                     url: this.urls[UGUP.Defn._defTypeToDefKey(path)],
                     urlParams: {"id": id},
-                    callback: UGUP.Models._wrapModelCallback(UGUP.Models[UGUP.Models._defTypeToDefKey(path)], callback)
+                    callback: UGUP.Models._wrapModelCallback(
+                        UGUP.Models[UGUP.Defn._defTypeToDefKey(path)],
+                        UGUP.Defn._createCacheInterceptorFn(path, callback),
+                        this)
                 });
             };
         },
 
         _createDefListFn: function(path) {
             return function(callback) {
+                if (!UGUP.Models[UGUP.Defn._defTypeToDefKey(path)]) {
+                    window.console && window.console.warn("UGUP.JS: Failed to located model for '" + path + "': " + UGUP.Defn._defTypeToDefKey(path));
+                }
+                // TODO: Check Cache First
                 this.ajax({
                     url: this.urls[UGUP.Defn._defTypeToDefListKey(path)],
-                    callback: UGUP.Models._wrapModelCallback(UGUP.Models[UGUP.Defn._defTypeToDefKey(path)], callback)
+                    callback: UGUP.Models._wrapModelCallback(
+                        UGUP.Models[UGUP.Defn._defTypeToDefKey(path)],
+                        UGUP.Defn._createCacheInterceptorFn(path, callback),
+                        this)
                 });
             };
         },
@@ -154,6 +227,16 @@ var UGUP = {
 
         _defTypeToDefnListKey: function(def) {
             return "fetchAll" + UGUP.Strings.capitalizeFirstLetter(def) + "Definitions";
+        },
+
+        _createCacheInterceptorFn: function(path, callback) {
+            return function(response, model) {
+                UGUP.Cache.storeData(path, model);
+
+                if (typeof callback === "function") {
+                    callback(response, model);
+                }
+            };
         }
     },
 
@@ -175,7 +258,7 @@ var UGUP = {
         },
 
         _greasemonkey_ajax_bridge: function(params) {
-
+            // TODO Interface to a GM layer XHR
         },
 
         /**
@@ -267,7 +350,16 @@ var UGUP = {
         return modelConfig;
     },
 
+    /**
+     * UgUp Models
+     * If a model has a from method, the recursion ends there. If not, the models will continue to dig deeper until all types are resolved
+     */
     Models: {
+        boolean: {
+            from: function(data) {
+                return !!data;
+            }
+        },
         int: {
             from: function(data) {
                 return parseInt(data);
@@ -281,37 +373,221 @@ var UGUP = {
         ACHIEVEMENT: {
             "achievementid": "int"
         },
+        ENCHANT_DEFINITION: {
+            "id": "int",
+            "name": "string",
+            "proc_name": "string",
+            "proc_desc": "string"
+        },
+        ITEM_RARITY: {
+
+        },
+        ITEMSET_DEFINITION: {
+            "id": "int",
+            "name": "string",
+            "item": "RECIPE_ITEM" // array
+        },
+        LEGION_DEFINITION: {
+            "id": "int",
+            "name": "string",
+            "num_gen": "int",
+            "num_trp": "int",
+            "bonus": "int",
+            "bonusSpecial": "int",
+            "bonusText": "string",
+            "rarity": "ITEM_RARITY",
+            "value_gold": "int",
+            "value_credits": "int",
+            "canpurchase": "boolean",
+            "questReq": "boolean",
+            "lore": "string",
+            "proc_name": "string",
+            "proc_desc": "string",
+            "specification": "string",
+            "general_format": "LEGION_PEOPLE_FORMAT",
+            "troop_format": "LEGION_PEOPLE_FORMAT"
+        },
+        LEGION_PEOPLE_FORMAT: {
+            "race": "LEGION_RACE",
+            "role": "LEGION_ROLE",
+            "source": "LEGION_SOURCE",
+            "qty": "int"
+        },
+        LEGION_RACE: {
+            // This is an OpenUGUP only model not provided anywhere in normal UgUp
+            // Legion Race expects to consume an int (or string of int)
+            from: function(data, connector) {
+                return UGUP.LegionRace[connector.cfg.game.toUpperCase()].fromId(parseInt(data));
+            }
+        },
+        LEGION_ROLE: {
+            // This is an OpenUGUP only model not provided anywhere in normal UgUp
+            // Legion Role expects to consume an int (or string of int)
+            from: function(data, connector) {
+                return UGUP.LegionRole[connector.cfg.game.toUpperCase()].fromId(parseInt(data));
+            }
+        },
+        LEGION_SOURCE: {
+            // This is an OpenUGUP only model not provided anywhere in normal UgUp
+            // Legion Source expects to consume an int (or string of int)
+            from: function(data, connector) {
+                return UGUP.LegionSource[connector.cfg.game.toUpperCase()].fromId(parseInt(data));
+            }
+        },
+        MAGIC_DEFINITION: {
+            "id": "int",
+            "name": "string",
+            "rarity": "ITEM_RARITY",
+            "value_gold": "int",
+            "value_credits": "int",
+            "questReq": "boolean",
+            "lore": "string",
+            "proc_desc": "string"
+        },
+        PET_DEFINITION: {
+            "id": "int",
+            "name": "string",
+            "rarity": "ITEM_RARITY",
+            "lore": "string",
+            "proc_desc": "string"
+        },
         PLATFORM: {
-            // Platform expects to consume an int (or string of int) and
+            // This is an OpenUGUP only model not provided anywhere in normal UgUp
+            // Platform expects to consume an int (or string of int)
             from: function(data) {
-                return UGUP.PLATFORM.valueOf(data);
+                return UGUP.PLATFORM.valueOf(parseInt(data));
             }
         },
         PLAYER_CLASS: {
-            // Platform expects to consume an int (or string of int) and
+            // This is an OpenUGUP only model not provided anywhere in normal UgUp
+            // Player Class expects to consume an int (or string of int)
             from: function(data) {
-                return UGUP.PlayerClasses.fromId(parseInt(data));
+                return UGUP.PlayerClass.fromId(parseInt(data));
             }            
         },
         PROFILE: {
             "fname": "string",
             "level": "int",
             "gender": "string",
-            "classID": "PLAYER_CLASS",
+            "classID": "int",
+            "class": "PLAYER_CLASS",
             "guildID": "int",
             "hairID": "int",
             "skinID": "int",
             "faceID": "int",
             "platform": "PLATFORM",
             "ugupoptout": "int",
-            "id": "string",
+            "id": "USER_ID",
             "equipment": "SIMPLE_ITEM", // array
             "achievements": "ACHIEVEMENT", // array
-            "messages": "string" // array
+            "messages": "PROFILE_MESSAGE", // array
+
+            initialize: function(response, model) {
+                if (model && model.classID) {
+                    model["class"] = UGUP.PlayerClass.fromId(model.classID);
+                }
+            },
+
+            render: function(model) {
+                // TODO: Draw the character profile on a canvas or similar
+                console.log("Begin Rendering Character!");
+
+                // First, we need to make sure we have all the item definitions needed
+
+            }
+        },
+        PROFILE_MESSAGE: {
+            "message": "string"
+        },
+        RAID: {
+            "id": "int",
+            "summonerid": "USER_ID",
+            "raidid": "int",
+            "debuff1id": "int",
+            "debuff2id": "int",
+            "debuff3id": "int",
+            "debuff4id": "int",
+            "debuff5id": "int",
+            "debuff6id": "int",
+            "guildshared": "boolean",
+            "hash": "string",
+            "difficulty": "int",
+            "enragehealth": "int",
+            "maxhealth": "int",
+            "currenthealth": "int",
+            "nummembers": "int",
+            "iscomplete": "boolean",
+            "definition": "RAID_DEFINITION",
+
+            render: function() {
+                // TODO: Render the raid on a canvas or similar
+            }
+        },
+        RAID_DEFINITION: {
+            "id": "int",
+            "name": "string",
+            "shortname": "string",
+            "maxattackers": "int",
+            "guildraid": "boolean",
+            "raidtimer": "int",
+            "cooldowntimer": "int",
+            "numdebuffs": "int",
+            "size": "RAID_SIZE",
+            "image": "string",
+            "icon": "string",
+            "postimage": "string",
+            "classid": "int",
+            "difficulty": "RAID_DIFFICULTY",
+
+            render: function() {
+                // TODO: Decide how to render a Raid Definition. Maybe wiki format?
+            }
+        },
+        RAID_DIFFICULTY: {
+            // This is an OpenUGUP only model not provided anywhere in normal UgUp
+            // Raid Difficulty expects to consume an int (or string of int)
+            from: function(data) {
+                return UGUP.RaidDifficulty.fromId(parseInt(data));
+            }
+        },
+        RAID_SIZE: {
+            // This is an OpenUGUP only model not provided anywhere in normal UgUp
+            // Raid Difficulty expects to consume an int (or string of int)
+            from: function(data) {
+                return UGUP.RaidSize.fromId(parseInt(data));
+            }
         },
         SIMPLE_ITEM: {
             "itemtype": "int",
             "itemid": "int"
+        },
+        RECIPE_DEFINITION: {
+            "id": "int",
+            "name": "string",
+            "type": "RECIPE_TYPE",
+            "subtype": "RECIPE_SUBTYPE",
+            "item": "RECIPE_ITEM", // array
+            "result": "RECIPE_ITEM" // array
+        },
+        RECIPE_ITEM: {
+            "id": "int",
+            "type": "int",
+            "quantity": "int"
+        },
+        RECIPE_SUBTYPE: {
+            // Recipe Subtype expects to consume an int (or string of int)
+            // TODO: Come up with a specific model for this (need to map the types)
+            from: function(data) {
+                return parseInt(data);
+            }
+        },
+        RECIPE_TYPE: {
+            // This is an OpenUGUP only model not provided anywhere in normal UgUp
+            // Recipe Type expects to consume an int (or string of int)
+            from: function(data) {
+                return UGUP.RecipeType.fromId(parseInt(data));
+            }
+
         },
         USER_ID: {
             // USER_ID is kind of sneaky in that there isn't anything at the top level of this, it's just a string result
@@ -321,8 +597,8 @@ var UGUP = {
         },
 
         // -- Models Helper Methods -- //
-        _defaultFromMethod: function(data) {
-            var result = {_raw: data};
+        _defaultFromMethod: function(data, connector) {
+            var result = {};
             // For every key in the data
             for (var key in data) {
                 if (data.hasOwnProperty(key) ) {
@@ -331,11 +607,11 @@ var UGUP = {
                         if (UGUP.Arrays.isArray(data[key])) {
                             result[key] = [];
                             for (var i = 0; i < data[key].length; i++) {
-                                result[key].push(UGUP.Models[this[key]].from(data[key][i]));
+                                result[key].push(UGUP.Models[this[key]].from(data[key][i], connector));
                             }
                         }
                         else {
-                            result[key] = UGUP.Models[this[key]].from(data[key]);
+                            result[key] = UGUP.Models[this[key]].from(data[key], connector);
                         }
                     }
                     // Just take the raw value
@@ -346,44 +622,255 @@ var UGUP = {
             }
             return result;
         },
-        _wrapModelCallback: function(modelType, callback) {
+        _wrapModelCallback: function(modelType, callback, connector) {
             return function(response) {
                 var model, parsedJSON;
                 // Check the base HTTP response code, we're expecting pure 200, no other 20x codes
                 if (response.status == 200) {
-                    // Parse the JSON
-                    var tmpJson = JSON.parse(response.responseText);
-                    // Get the result object
-                    parsedJSON = tmpJson.result;
+                    try {
+                        // Parse the JSON
+                        var tmpJson = JSON.parse(response.responseText);
+                        // Get the result object
+                        parsedJSON = tmpJson.result;
 
-                    // If the service reports a data success
-                    if (!!tmpJson.success) {
-                        // If we know how to parse this kind of model
-                        if (modelType && typeof modelType.from === "function") {
-                            // Parse into the model
-                            model = modelType.from(parsedJSON);
+                        // If the service reports a data success
+                        if (!!tmpJson.success) {
+                            // If we know how to parse this kind of model
+                            if (modelType && typeof modelType.from === "function") {
+                                // Parse into the model
+                                model = modelType.from(parsedJSON, connector);
+                                if (model) {
+                                    if (typeof modelType.initialize === "function") {
+                                        modelType.initialize(parsedJSON, model);
+                                    }
+                                    model._raw = parsedJSON;
+                                    model._modelType = modelType;
+                                }
+                                else {
+                                    window.console && window.console.warn("UGUP.JS: Failed to fill model type: ", modelType, " from: ", parsedJSON);
+                                }
+                            }
+                            else {
+                                // Don't know how to deal with this
+                                // TODO Better logging mechanism
+                                window.console && window.console.warn("UGUP.JS: Failed to process model from type: ", modelType);
+                            }
                         }
                         else {
-                            // Don't know how to deal with this
+                            // Some kind of failure in the query. Log it
                             // TODO Better logging mechanism
-                            window.console && window.console.warn("UGUP.JS: Failed to process model from type: ", modelType);
+                            // TODO Specific handling of known error codes
+                            window.console && window.console.error("UGUP.JS: Failed API call. Code: ", tmpJson.code, " Reason: ", tmpJson.reason);
                         }
                     }
-                    else {
+                    catch(ex) {
                         // Some kind of failure in the query. Log it
                         // TODO Better logging mechanism
                         // TODO Specific handling of known error codes
-                        window.console && window.console.error("UGUP.JS: Failed API call. Code: ", tmpJson.code, " Reason: ", tmpJson.reason);
+                        window.console && window.console.error("UGUP.JS: Failed handling API response.", ex);
                     }
                 }
                 if (typeof callback === "function") {
-                    callback(response, model || parsedJSON);
+                    callback(response, model || parsedJSON || {});
                 }
             }
         }
     },
 
-    PlayerClasses: {
+    LegionRace: {
+        SUNS: {
+            Any: {
+                id: 0,
+                key: "Any",
+                name: "Any"
+            },
+            Human: {
+                id: 1,
+                key: "Human",
+                name: "Human"
+            },
+            Robot: {
+                id: 2,
+                key: "Robot",
+                name: "Robot"
+            },
+            Rylattu: {
+                id: 3,
+                key: "Rylattu",
+                name: "Rylattu"
+            },
+            Sussurra: {
+                id: 4,
+                key: "Sussurra",
+                name: "Sussurra"
+            },
+            Piscarian: {
+                id: 5,
+                key: "Piscarian",
+                name: "Piscarian"
+            },
+            Snuuth: {
+                id: 6,
+                key: "Snuuth",
+                name: "Snuuth"
+            },
+            Vlarg: {
+                id: 7,
+                key: "Vlarg",
+                name: "Vlarg"
+            },
+            Hukkral: {
+                id: 8,
+                key: "Hukkral",
+                name: "Huk-Kral"
+            },
+
+            fromId: function(id) {
+                var modelRoot = UGUP.LegionRace.SUNS,
+                    cache = modelRoot._idCache;
+                // If we've made the cache, check it
+                if (cache) {
+                    return cache[id];
+                }
+                // Haven't made the cache yet? Generate it now, then try again
+                else {
+                    cache = {};
+                    for (var modelKey in modelRoot) {
+                        if (modelRoot.hasOwnProperty(modelKey) && typeof modelRoot[modelKey] !== "function") {
+                            var model = modelRoot[modelKey];
+                            cache[model.id] = model;
+                        }
+                    }
+
+                    // Actually store the cache
+                    modelRoot._idCache = cache;
+
+                    // Now that we've generated the cache, try again
+                    return modelRoot.fromId(id);
+                }
+            }
+        }
+    },
+    LegionRole: {
+        SUNS: {
+            Any: {
+                id: 0,
+                key: "Any",
+                name: "Any"
+            },
+            Tank: {
+                id: 1,
+                key: "Tank",
+                name: "Tank"
+            },
+            Melee: {
+                id: 2,
+                key: "Melee",
+                name: "Melee"
+            },
+            Ranged: {
+                id: 3,
+                key: "Ranged",
+                name: "Ranged"
+            },
+            Healer: {
+                id: 4,
+                key: "Healer",
+                name: "Healer"
+            },
+            Special: {
+                id: 5,
+                key: "Special",
+                name: "Special (Role)"
+            },
+
+            fromId: function(id) {
+                var modelRoot = UGUP.LegionRace.SUNS,
+                    cache = modelRoot._idCache;
+                // If we've made the cache, check it
+                if (cache) {
+                    return cache[id];
+                }
+                // Haven't made the cache yet? Generate it now, then try again
+                else {
+                    cache = {};
+                    for (var modelKey in modelRoot) {
+                        if (modelRoot.hasOwnProperty(modelKey) && typeof modelRoot[modelKey] !== "function") {
+                            var model = modelRoot[modelKey];
+                            cache[model.id] = model;
+                        }
+                    }
+
+                    // Actually store the cache
+                    modelRoot._idCache = cache;
+
+                    // Now that we've generated the cache, try again
+                    return modelRoot.fromId(id);
+                }
+            }
+        }
+    },
+    LegionSource: {
+        SUNS: {
+            Any: {
+                id: 0,
+                key: "Any",
+                name: "Any"
+            },
+            Strength: {
+                id: 1,
+                key: "Strength",
+                name: "Strength"
+            },
+            Agility: {
+                id: 2,
+                key: "Agility",
+                name: "Agility"
+            },
+            Intellect: {
+                id: 3,
+                key: "Intellect",
+                name: "Intellect"
+            },
+            Discipline: {
+                id: 4,
+                key: "Discipline",
+                name: "Discipline"
+            },
+            Special: {
+                id: 5,
+                key: "Special",
+                name: "Special (Attribute)"
+            },
+
+            fromId: function(id) {
+                var modelRoot = UGUP.LegionRace.SUNS,
+                    cache = modelRoot._idCache;
+                // If we've made the cache, check it
+                if (cache) {
+                    return cache[id];
+                }
+                // Haven't made the cache yet? Generate it now, then try again
+                else {
+                    cache = {};
+                    for (var modelKey in modelRoot) {
+                        if (modelRoot.hasOwnProperty(modelKey) && typeof modelRoot[modelKey] !== "function") {
+                            var model = modelRoot[modelKey];
+                            cache[model.id] = model;
+                        }
+                    }
+
+                    // Actually store the cache
+                    modelRoot._idCache = cache;
+
+                    // Now that we've generated the cache, try again
+                    return modelRoot.fromId(id);
+                }
+            }
+        }
+    },
+
+    PlayerClass: {
         Tier0: [{
             id: 1,
             dawn: {
@@ -537,7 +1024,7 @@ var UGUP = {
             },
             suns: {
                 name: "Galactic Avenger",
-                text: "Galactic Avengers truly know what it means to be interstellar heroes. Their Energy and Stamina recover at an exceptional rate, allowing them to perform a lifetime’s worth of daring deeds each day.",
+                text: "Galactic Avengers truly know what it means to be interstellar heroes. Their Energy and Stamina recover at an exceptional rate, allowing them to perform a lifetime's worth of daring deeds each day.",
                 icon: "galacticavenger.jpg"
             },
             energyTimer: 75,
@@ -575,7 +1062,7 @@ var UGUP = {
         }],
 
         fromId: function(classId) {
-            var pc = UGUP.PlayerClasses,
+            var pc = UGUP.PlayerClass,
                 cache = pc.idCache;
             // If we've made the cache, check it
             if (cache) {
@@ -595,6 +1082,225 @@ var UGUP = {
 
                 // Now that we've generated the cache, try again
                 return pc.fromId(classId);
+            }
+        }
+    },
+
+    RaidDifficulty: {
+        1: {
+            name: "Normal",
+            shortName: "N"
+        },
+        2: {
+            name: "Hard",
+            shortName: "L"
+        },
+        3: {
+            name: "Legendary",
+            shortName: "L"
+        },
+        4: {
+            name: "Nightmare",
+            shortName: "NM"
+        },
+
+        fromId: function(id) {
+            return UGUP.RaidDifficulty[id];
+        }
+    },
+
+    RaidSize: {
+        Small: {
+            id: 0,
+            name: "Small",
+            textColor: "#52E461",
+            icon: ""
+        },
+        Medium: {
+            id: 1,
+            name: "Medium",
+            textColor: "#E3E82F",
+            icon: ""
+        },
+        Large: {
+            id: 2,
+            name: "Large",
+            textColor: "#F0690F",
+            icon: ""
+        },
+        Epic: {
+            id: 3,
+            name: "Epic",
+            textColor: "#CC003A",
+            icon: ""
+        },
+        Colossal: {
+            id: 4,
+            name: "Colossal",
+            textColor: "#00ACFF",
+            icon: ""
+        },
+        Personal: {
+            id: 5,
+            name: "Personal",
+            textColor: "#64FD67",
+            icon: ""
+        },
+        SmallPlus: {
+            id: 6,
+            name: "Small +",
+            textColor: "#52E461",
+            icon: ""
+        },
+        SmallSpecial: {
+            id: 7,
+            name: "Small Special",
+            textColor: "#52E461",
+            icon: ""
+        },
+        MediumPlus: {
+            id: 8,
+            name: "Medium +",
+            textColor: "#E3E82F",
+            icon: ""
+        },
+        MediumSpecial: {
+            id: 9,
+            name: "Medium Special",
+            textColor: "#E3E82F",
+            icon: ""
+        },
+        LargePlus: {
+            id: 10,
+            name: "Large +",
+            textColor: "#F0690F",
+            icon: ""
+        },
+        LargeSpecial: {
+            id: 11,
+            name: "Large Special",
+            textColor: "#F0690F",
+            icon: ""
+        },
+        EpicPlus: {
+            id: 12,
+            name: "Epic +",
+            textColor: "#CC003A",
+            icon: ""
+        },
+        EpicSpecial: {
+            id: 13,
+            name: "Epic Special",
+            textColor: "#CC003A",
+            icon: ""
+        },
+        ColossalPlus: {
+            id: 14,
+            name: "Colossal +",
+            textColor: "#00ACFF",
+            icon: ""
+        },
+        ColossalSpecial: {
+            id: 15,
+            name: "Colossal Special",
+            textColor: "#00ACFF",
+            icon: ""
+        },
+        Titanic: {
+            id: 16,
+            name: "Titanic",
+            textColor: "#D8005F",
+            icon: ""
+        },
+        TitanicSpecial: {
+            id: 17,
+            name: "Titanic Special",
+            textColor: "#D8005F",
+            icon: ""
+        },
+        Galactic: {
+            id: 18,
+            name: "Galactic",
+            textColor: "#568BF7",
+            icon: ""
+        },
+        GalacticSpecial: {
+            id: 19,
+            name: "Galactic Special",
+            textColor: "#568BF7",
+            icon: ""
+        },
+
+        fromId: function(id) {
+            var modelRoot = UGUP.LegionRace.SUNS,
+                cache = modelRoot._idCache;
+            // If we've made the cache, check it
+            if (cache) {
+                return cache[id];
+            }
+            // Haven't made the cache yet? Generate it now, then try again
+            else {
+                cache = {};
+                for (var modelKey in modelRoot) {
+                    if (modelRoot.hasOwnProperty(modelKey) && typeof modelRoot[modelKey] !== "function") {
+                        var model = modelRoot[modelKey];
+                        cache[model.id] = model;
+                    }
+                }
+
+                // Actually store the cache
+                modelRoot._idCache = cache;
+
+                // Now that we've generated the cache, try again
+                return modelRoot.fromId(id);
+            }
+        }
+    },
+
+    RecipeType: {
+        General: {
+            id: 1,
+            name: "General"
+        },
+        Collection: {
+            id: 2,
+            name: "Collection"
+        },
+        Alliance: {
+            id: 3,
+            name: "Alliance"
+        },
+        Legendary: {
+            id: 4,
+            name: "Legendary"
+        },
+        Misc: {
+            id: 5,
+            name: "Misc."
+        },
+
+        fromId: function(id) {
+            var modelRoot = UGUP.LegionRace.SUNS,
+                cache = modelRoot._idCache;
+            // If we've made the cache, check it
+            if (cache) {
+                return cache[id];
+            }
+            // Haven't made the cache yet? Generate it now, then try again
+            else {
+                cache = {};
+                for (var modelKey in modelRoot) {
+                    if (modelRoot.hasOwnProperty(modelKey) && typeof modelRoot[modelKey] !== "function") {
+                        var model = modelRoot[modelKey];
+                        cache[model.id] = model;
+                    }
+                }
+
+                // Actually store the cache
+                modelRoot._idCache = cache;
+
+                // Now that we've generated the cache, try again
+                return modelRoot.fromId(id);
             }
         }
     },
@@ -701,7 +1407,7 @@ UGUP.Suns.prototype = {
         this.ajax({
             url: this.urls.USER_ID,
             urlParams: {"username": username},
-            callback: UGUP.Models._wrapModelCallback(UGUP.Models.USER_ID, callback)
+            callback: UGUP.Models._wrapModelCallback(UGUP.Models.USER_ID, callback, this)
         });
     },
 
@@ -709,7 +1415,7 @@ UGUP.Suns.prototype = {
         this.ajax({
             url: this.urls.PROFILE,
             urlParams: {"id": userId},
-            callback: UGUP.Models._wrapModelCallback(UGUP.Models.PROFILE, callback)
+            callback: UGUP.Models._wrapModelCallback(UGUP.Models.PROFILE, callback, this)
         });
     },
 
@@ -717,8 +1423,15 @@ UGUP.Suns.prototype = {
         this.fetchUserId(username, function(response, model) {
             this.fetchUserProfileById(model, callback);
         }.bind(this));
-    }
+    },
 
+    fetchRaid: function(id, hash, callback) {
+        this.ajax({
+            url: this.urls.RAID,
+            urlParams: {"id": id, "hash": hash},
+            callback: UGUP.Models._wrapModelCallback(UGUP.Models.RAID, callback, this)
+        });
+    }
 };
 
 // Prepare the query functions
