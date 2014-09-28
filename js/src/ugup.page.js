@@ -108,6 +108,9 @@ function initUgUpTest() {
                     resultsArea.innerHTML += '<button type="button" id="ugup-api-render-btn" class="btn btn-success">Render OpenUGUP Model</button>';
                 }
 
+                if (model && !response) {
+                    response = "" + response + " // A blank response with a defined model usually means the model was already requested and cached."
+                }
                 resultsArea.innerHTML += "OpenUGUP Model: \n <pre class='code prettyprint lang-js'>" + (window.js_beautify ? js_beautify(JSON.stringify(model)) : JSON.stringify(model)) + "</pre>";
                 resultsArea.innerHTML += "\n\n\nRaw Response: \n <pre class='code prettyprint lang-js'>" + (window.js_beautify ? js_beautify(JSON.stringify(response)) : JSON.stringify(response)) + "</pre>";
 
@@ -115,7 +118,7 @@ function initUgUpTest() {
 
                 if (renderBtn) {
                     renderBtn.onclick = function() {
-                        model._modelType.render(model);
+                        model._modelType.render(model, connector, function(el){document.appendChild(el);});
                     };
                 }
 

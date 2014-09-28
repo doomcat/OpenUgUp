@@ -109,11 +109,16 @@ var UGUP = {
 
     Cache: {
         /**
-         *
+         * @param {UGUP.GAME} game
          * @param {string|number} typeKey
          * @param {UGUP.model|[UGUP.model]} models
          */
-        storeData: function(typeKey, models) {
+        storeData: function(game, typeKey, models) {
+            // If there's not a cache for this game, initialize it
+            if (!UGUP.Cache[game]) {
+                UGUP.Cache[game] = {_fullCache: {}};
+            }
+
             // If models is null, don't try to cache anything
             if (models) {
                 // If it's not an array, just make it an array of one for consistency
@@ -122,33 +127,39 @@ var UGUP = {
                 }
                 // If it's already an array, assume that it's a full cache
                 else {
-                    UGUP.Cache._fullCache[typeKey] = true;
+                    UGUP.Cache[game]._fullCache[typeKey] = true;
                 }
 
-                if (!UGUP.Cache[typeKey]) {
-                    UGUP.Cache[typeKey] = {};
+                if (!UGUP.Cache[game][typeKey]) {
+                    UGUP.Cache[game][typeKey] = {};
                 }
 
                 for (var i = 0; i < models.length; i++) {
                     var model = models[i];
-                    UGUP.Cache[typeKey][model.id] = model;
+                    UGUP.Cache[game][typeKey][model.id] = model;
                 }
             }
         },
 
         /**
+         * @param {UGUP.GAME} game
          * @param {string|number} typeKey
          * @param {string?|number?} modelId
          */
-        fetchData: function(typeKey, modelId) {
-            var cache = UGUP.Cache[typeKey];
+        fetchData: function(game, typeKey, modelId) {
+            // If there's not a cache for this game, initialize it
+            if (!UGUP.Cache[game]) {
+                UGUP.Cache[game] = {_fullCache: {}};
+            }
+
+            var cache = UGUP.Cache[game][typeKey];
             if (cache) {
                 // Looking for a single model from the cache
                 if (modelId) {
                     return cache[modelId];
                 }
                 // Looking for a complete model listing from the cache. First make sure the cache is full
-                else if (UGUP.Cache._fullCache[typeKey]) {
+                else if (UGUP.Cache[game]._fullCache[typeKey]) {
                     var resultArr = [];
 
                     for (var i in cache) {
@@ -161,9 +172,7 @@ var UGUP = {
                     return resultArr;
                 }
             }
-        },
-
-        _fullCache: {}
+        }
     },
 
     Defn: {
@@ -185,15 +194,21 @@ var UGUP = {
                 if (!UGUP.Models[UGUP.Defn._defTypeToDefKey(path)]) {
                     window.console && window.console.warn("UGUP.JS: Failed to located model for '" + path + "': " + UGUP.Defn._defTypeToDefKey(path));
                 }
-                // TODO: Check Cache First
-                this.ajax({
-                    url: this.urls[UGUP.Defn._defTypeToDefKey(path)],
-                    urlParams: {"id": id},
-                    callback: UGUP.Models._wrapModelCallback(
-                        UGUP.Models[UGUP.Defn._defTypeToDefKey(path)],
-                        UGUP.Defn._createCacheInterceptorFn(path, callback),
-                        this)
-                });
+
+                var cached = UGUP.Cache.fetchData(this.cfg.game, path, id);
+                if (typeof callback === "function" && cached) {
+                    callback(null, cached);
+                }
+                else {
+                    this.ajax({
+                        url: this.urls[UGUP.Defn._defTypeToDefKey(path)],
+                        urlParams: {"id": id},
+                        callback: UGUP.Models._wrapModelCallback(
+                            UGUP.Models[UGUP.Defn._defTypeToDefKey(path)],
+                            UGUP.Defn._createCacheInterceptorFn(path, callback, this),
+                            this)
+                    });
+                }
             };
         },
 
@@ -202,14 +217,20 @@ var UGUP = {
                 if (!UGUP.Models[UGUP.Defn._defTypeToDefKey(path)]) {
                     window.console && window.console.warn("UGUP.JS: Failed to located model for '" + path + "': " + UGUP.Defn._defTypeToDefKey(path));
                 }
-                // TODO: Check Cache First
-                this.ajax({
-                    url: this.urls[UGUP.Defn._defTypeToDefListKey(path)],
-                    callback: UGUP.Models._wrapModelCallback(
-                        UGUP.Models[UGUP.Defn._defTypeToDefKey(path)],
-                        UGUP.Defn._createCacheInterceptorFn(path, callback),
-                        this)
-                });
+
+                var cached = UGUP.Cache.fetchData(this.cfg.game, path);
+                if (typeof callback === "function" && cached) {
+                    callback(null, cached);
+                }
+                else {
+                    this.ajax({
+                        url: this.urls[UGUP.Defn._defTypeToDefListKey(path)],
+                        callback: UGUP.Models._wrapModelCallback(
+                            UGUP.Models[UGUP.Defn._defTypeToDefKey(path)],
+                            UGUP.Defn._createCacheInterceptorFn(path, callback, this),
+                            this)
+                    });
+                }
             };
         },
 
@@ -229,9 +250,9 @@ var UGUP = {
             return "fetchAll" + UGUP.Strings.capitalizeFirstLetter(def) + "Definitions";
         },
 
-        _createCacheInterceptorFn: function(path, callback) {
+        _createCacheInterceptorFn: function(path, callback, connector) {
             return function(response, model) {
-                UGUP.Cache.storeData(path, model);
+                UGUP.Cache.storeData(connector.cfg.game, path, model);
 
                 if (typeof callback === "function") {
                     callback(response, model);
@@ -316,6 +337,9 @@ var UGUP = {
     },
 
     Urls: {
+        assetRoot: "http://5thplanetlots.insnw.net/lots_live/",
+        avatarAssetUrl: "images/avatar/",
+
         _buildUrls: function(root) {
             var urls = {};
 
@@ -379,8 +403,53 @@ var UGUP = {
             "proc_name": "string",
             "proc_desc": "string"
         },
+        EQUIPMENT_DEFINITION: {
+            "id": "int",
+            "name": "string",
+            "attack": "int",
+            "defense": "int",
+            "perception": "int",
+            "rarity": "ITEM_RARITY",
+            "value_gold": "int", // Free currency
+            "value_credits": "int", // Paid currency
+            "value_gtoken": "int", // Guild tokens
+            "questReq": "int", // If this is > 0, the item will usually appear in the show
+            "unique": "boolean",
+            "canEnchant": "boolean", // Does it perform enchantment? (Fusion Crystals => true)
+            "equipType": "EQUIPMENT_TYPE",
+            "hlt": "int", // Bonus Player Health
+            "eng": "int", // Bonus Player Energy
+            "sta": "int", // Bonus Player Stamina
+            "hnr": "int", // Bonus Player Honor
+            "atk": "int", // Bonus Player Attack
+            "def": "int", // Bonus Player Defense
+            "power": "int", // Bonus PvP Power
+            "dmg": "int", // Bonus PvP Damage
+            "deflect": "int", // Bonus PvP Deflection
+            "lore": "string",
+            "proc_name": "string",
+            "proc_desc": "string"
+        },
+        EQUIPMENT_TYPE: {
+            // This is an OpenUGUP only model not provided anywhere in normal UgUp
+            // Equipment Type expects to consume an int (or string of int)
+            from: function(data) {
+                return UGUP.EquipmentType.fromId(parseInt(data));
+            }
+        },
         ITEM_RARITY: {
-
+            // This is an OpenUGUP only model not provided anywhere in normal UgUp
+            // Item Rarity expects to consume an int (or string of int)
+            from: function(data) {
+                return UGUP.ItemRarity.fromId(parseInt(data));
+            }
+        },
+        ITEM_TYPE: {
+            // This is an OpenUGUP only model not provided anywhere in normal UgUp
+            // Item Type expects to consume an int (or string of int)
+            from: function(data) {
+                return UGUP.ItemType.fromId(parseInt(data));
+            }
         },
         ITEMSET_DEFINITION: {
             "id": "int",
@@ -399,7 +468,7 @@ var UGUP = {
             "value_gold": "int",
             "value_credits": "int",
             "canpurchase": "boolean",
-            "questReq": "boolean",
+            "questReq": "int",
             "lore": "string",
             "proc_name": "string",
             "proc_desc": "string",
@@ -440,8 +509,32 @@ var UGUP = {
             "rarity": "ITEM_RARITY",
             "value_gold": "int",
             "value_credits": "int",
-            "questReq": "boolean",
+            "questReq": "int",
             "lore": "string",
+            "proc_desc": "string"
+        },
+        MOUNT_DEFINITION: {
+            "id": "int",
+            "name": "string",
+            "attack": "int",
+            "defense": "int",
+            "perception": "int",
+            "rarity": "ITEM_RARITY",
+            "value_gold": "int",
+            "value_credits": "int",
+            "questReq": "int",
+            "unique": "boolean",
+            "hlt": "int",
+            "eng": "int",
+            "sta": "int",
+            "hnr": "int",
+            "atk": "int",
+            "def": "int",
+            "power": "int",
+            "dmg": "int",
+            "deflect": "int",
+            "lore": "string",
+            "proc_name": "string",
             "proc_desc": "string"
         },
         PET_DEFINITION: {
@@ -488,11 +581,81 @@ var UGUP = {
                 }
             },
 
-            render: function(model) {
-                // TODO: Draw the character profile on a canvas or similar
-                console.log("Begin Rendering Character!");
-
+            render: function(model, connector, callback) {
                 // First, we need to make sure we have all the item definitions needed
+                var fullEquipDetails = {},
+                    simpleItem,
+                    i, j = model.equipment.length;
+
+                if (model.equipment.length) {
+                    // Run through each piece of equipment and grab their info
+                    for (i = 0; i < model.equipment.length; i++) {
+                        simpleItem = model.equipment[i];
+                        var defn = connector[UGUP.Defn._defTypeToDefnKey(simpleItem.itemtype.key.toLowerCase())];
+                        if (defn) {
+                            defn.call(connector, simpleItem.itemid, function(response, itemModel) {
+                                var goTime, key;
+                                if (!--j) {goTime = true;}
+
+                                switch(itemModel._modelType._modelName) {
+                                    case "EQUIPMENT_DEFINITION":
+                                        key = itemModel.equipType.key;
+                                        break;
+                                    case "MOUNT_DEFINITION":
+                                        key = UGUP.ItemType.Mount.key;
+                                        break;
+                                    case "PET_DEFINITION":
+                                        key = UGUP.ItemType.Pet.key;
+                                        break;
+                                }
+
+                                fullEquipDetails[key] = itemModel;
+
+                                if (goTime) {
+                                    UGUP.Models.PROFILE._renderHelper(model, {}, callback);
+                                }
+                            });
+                        }
+                        else {
+                            window.console && window.console.error("UGUP.JS: Don't know how to request an item of type: " + model.equipment[i].itemtype);
+                        }
+                    }
+                }
+                // There wasn't any equipment. Character is naked
+                else {
+                    UGUP.Models.PROFILE._renderHelper(model, {}, callback);
+                }
+            },
+
+            _renderHelper: function(profileModel, equipMap, callback) {
+                var div = document.createElement("div"),
+                    avatarUrlRoot = UGUP.Urls.assetRoot + UGUP.Urls.avatarAssetUrl,
+                    avatar = {
+                        base: "base",
+                        face: "face_" + profileModel.faceID,
+                        hair: "hair_" + profileModel.hairID
+                    };
+
+                div.style.position = "relative";
+
+                for (var key in avatar) {
+                    if (avatar.hasOwnProperty(key)) {
+                        var img = document.createElement("img");
+                        img.className = "avatar-" + key;
+                        if (profileModel.gender === "F") {
+                            avatar[key] += "_f";
+                        }
+
+                        img.src = avatarUrlRoot + avatar[key] + ".png";
+//                        avatar[key] = avatarUrlRoot + avatar[key] + ".png";
+
+                        div.appendChild(img);
+                    }
+                }
+
+                if (typeof callback === "function") {
+                    callback(div);
+                }
 
             }
         },
@@ -558,7 +721,7 @@ var UGUP = {
             }
         },
         SIMPLE_ITEM: {
-            "itemtype": "int",
+            "itemtype": "ITEM_TYPE",
             "itemid": "int"
         },
         RECIPE_DEFINITION: {
@@ -673,6 +836,458 @@ var UGUP = {
                 if (typeof callback === "function") {
                     callback(response, model || parsedJSON || {});
                 }
+            }
+        }
+    },
+
+    EquipmentType: {
+        MainHand: {
+            id: 1,
+            key: "MainHand",
+            name: "Main Hand"
+        },
+        OffHand: {
+            id: 2,
+            key: "OffHand",
+            name: "Off Hand"
+        },
+        Helmet: {
+            id: 3,
+            key: "Helmet",
+            name: "Helmet"
+        },
+        Chest: {
+            id: 4,
+            key: "Chest",
+            name: "Chest"
+        },
+        Gloves: {
+            id: 5,
+            key: "Gloves",
+            name: "Gloves"
+        },
+        Pants: {
+            id: 6,
+            key: "Pants",
+            name: "Pants"
+        },
+        Boots: {
+            id: 7,
+            key: "Boots",
+            name: "Boots"
+        },
+        Trinket: {
+            id: 8,
+            key: "Trinket",
+            name: "Trinket"
+        },
+        // Shields serve the same purpose as Off Hands.
+        // Generally, a shield will physically cover the character's entire offhand arm vs being held in the hand.
+        Shield: {
+            id: 9,
+            key: "Shield",
+            name: "Shield"
+        },
+
+        fromId: function(id) {
+            var modelRoot = UGUP.EquipmentType,
+                cache = modelRoot._idCache;
+            // If we've made the cache, check it
+            if (cache) {
+                return cache[id];
+            }
+            // Haven't made the cache yet? Generate it now, then try again
+            else {
+                cache = {};
+                for (var modelKey in modelRoot) {
+                    if (modelRoot.hasOwnProperty(modelKey) && typeof modelRoot[modelKey] !== "function") {
+                        var model = modelRoot[modelKey];
+                        cache[model.id] = model;
+                    }
+                }
+
+                // Actually store the cache
+                modelRoot._idCache = cache;
+
+                // Now that we've generated the cache, try again
+                return modelRoot.fromId(id);
+            }
+        }
+    },
+
+    ItemRarity: {
+        Mission: {
+            id: -2,
+            hexColor: "#8df1c2",
+            colorName: "Light Blue",
+            name: "Mission"
+        },
+        Paid :{
+            id: -1,
+            hexColor: "#fefe69",
+            colorName: "Yellow",
+            name: "Paid"
+        },
+        VeryCommon: {
+            id: 0,
+            hexColor: "#ffffff",
+            colorName: "White",
+            name: "Very Common"
+        },
+        Common: {
+            id: 1,
+            hexColor: "#b56303",
+            colorName: "Brown",
+            name: "Common"
+        },
+        LessCommon: {
+            id: 2,
+            hexColor: "#a0adad",
+            colorName: "Grey",
+            name: "Less Common"
+        },
+        Uncommon: {
+            id: 3,
+            hexColor: "#02fa08",
+            colorName: "Green",
+            name: "Uncommon"
+        },
+        MoreUncommon: {
+            id: 4,
+            hexColor: "#0397f8",
+            colorName: "Blue",
+            name: "More Uncommon"
+        },
+        Rare: {
+            id: 5,
+            hexColor: "#d179eb",
+            colorName: "Purple",
+            name: "Rare"
+        },
+        Epic: {
+            id: 6,
+            hexColor: "#fa9904",
+            colorName: "Orange",
+            name: "Epic"
+        },
+        Legendary: {
+            id: 7,
+            hexColor: "#ff0000",
+            colorName: "Red",
+            name: "Legendary"
+        },
+
+        fromId: function(id) {
+            var modelRoot = UGUP.ItemRarity,
+                cache = modelRoot._idCache;
+            // If we've made the cache, check it
+            if (cache) {
+                return cache[id];
+            }
+            // Haven't made the cache yet? Generate it now, then try again
+            else {
+                cache = {};
+                for (var modelKey in modelRoot) {
+                    if (modelRoot.hasOwnProperty(modelKey) && typeof modelRoot[modelKey] !== "function") {
+                        var model = modelRoot[modelKey];
+                        cache[model.id] = model;
+                    }
+                }
+
+                // Actually store the cache
+                modelRoot._idCache = cache;
+
+                // Now that we've generated the cache, try again
+                return modelRoot.fromId(id);
+            }
+        }
+    },
+
+    ItemType: {
+        Equipment: {
+            id: 1,
+            key: "Equipment",
+            suns: {
+                name: "Equipment"
+            },
+            dawn: {
+                name: "Equipment"
+            }
+        },
+        Magic: {
+            id: 2,
+            key: "Magic",
+            suns: {
+                name: "Tactic"
+            },
+            dawn: {
+                name: "Magic"
+            }
+        },
+        Mount: {
+            id: 3,
+            key: "Mount",
+            suns: {
+                name: "Utility" // Note that Utilities are NOT equipment, but Trinkets are.
+            },
+            dawn: {
+                name: "Mount"
+            }
+        },
+        General: {
+            id: 4,
+            key: "General",
+            suns: {
+                name: "Officer"
+            },
+            dawn: {
+                name: "General"
+            }
+        },
+        Legion: {
+            id: 5,
+            key: "Legion",
+            suns: {
+                name: "Ship"
+            },
+            dawn: {
+                name: "Legion"
+            }
+        },
+        Troop: {
+            id: 6,
+            key: "Troop",
+            suns: {
+                name: "Crew"
+            },
+            dawn: {
+                name: "Troop"
+            }
+        },
+        Collection: {
+            id: 7,
+            key: "Collection",
+            suns: {
+                name: "Collection"
+            },
+            dawn: {
+                name: "Collection"
+            }
+        },
+        Craft: {
+            id: 8,
+            key: "Craft",
+            suns: {
+                name: "Craft"
+            },
+            dawn: {
+                name: "Craft"
+            }
+        },
+        // TODO: What is #9?
+        Gift: {
+            id: 10,
+            key: "Gift",
+            suns: {
+                name: "Gift"
+            },
+            dawn: {
+                name: "Gift"
+            }
+        },
+        Consumable: {
+            id: 11,
+            key: "Consumable",
+            suns: {
+                name: "Consumable"
+            },
+            dawn: {
+                name: "Consumable"
+            }
+        },
+        PouchUpgrade: {
+            id: 12,
+            key: "PouchUpgrade",
+            suns: {
+                name: "Belt Upgrade"
+            },
+            dawn: {
+                name: "Pouch Upgrade"
+            }
+        },
+        Land: {
+            id: 13,
+            key: "Land",
+            suns: {
+                name: "Facility" // This type of facility is no longer in use. Facilities are not items since the Facilities revamp.
+            },
+            dawn: {
+                name: "Land"
+            }
+        },
+        Gold: { // Gold not to be confused with Golden Suns. This is free currency.
+            id: 14,
+            key: "Gold",
+            suns: {
+                name: "Credits"
+            },
+            dawn: {
+                name: "Gold"
+            }
+        },
+        Credits: { // Credits as in Facebook Credits. This is paid currency.
+            id: 15,
+            key: "Credits",
+            suns: {
+                name: "Golden Suns"
+            },
+            dawn: {
+                name: "Planet Coins"
+            }
+        },
+        Essence: {
+            id: 16,
+            key: "Essence",
+            suns: {
+                name: "Raid Data"
+            },
+            dawn: {
+                name: "Essence"
+            }
+        },
+        Stats: {
+            id: 17,
+            key: "Stats",
+            suns: {
+                name: "Attribute Points"
+            },
+            dawn: {
+                name: "Stats"
+            }
+        },
+        StarterPack: {
+            id: 18,
+            key: "StarterPack",
+            suns: {
+                name: "Starter Pack"},
+            dawn: {
+                name: "Starter Pack"
+            }
+        },
+        TreasureChest: {
+            id: 19,
+            key: "TreasureChest",
+            suns: {
+                name: "Expedition"
+            },
+            dawn: {
+                name: "Treasure Chest"
+            }
+        },
+        AchievementPack: {
+            id: 20,
+            key: "AchievementPack",
+            suns: {
+                name: "Achievement Pack"
+            },
+            dawn: {
+                name: "Achievement Pack"
+            }
+        },
+        Pet: {
+            id: 21,
+            key: "Pet",
+            suns: {
+                name: "Sidekick"
+            },
+            dawn: {
+                name: "Pet"
+            }
+        },
+        Raid: {
+            id: 22,
+            key: "Raid",
+            suns: {
+                name: "Raid"
+            },
+            dawn: {
+                name: "Raid"
+            }
+        },
+        Pouch: {
+            id: 23,
+            key: "Pouch",
+            suns: {
+                name: "Belt"
+            },
+            dawn: {
+                name: "Pouch"
+            }
+        },
+        Usable: {
+            id: 24,
+            key: "Usable",
+            suns: {
+                name: "Usable"
+            },
+            dawn: {
+                name: "Usable"
+            }
+        },
+        Runes: {
+            id: 25,
+            key: "Runes",
+            suns: {
+                name: "Continuum Transfunctioner"
+            },
+            dawn: {
+                name: "Rune"
+            }
+        },
+        Engineering: {
+            id: 26,
+            key: "Engineering",
+            suns: {
+                name: "Engineering"
+            },
+            dawn: {
+                name: "???Engineering???"
+            }
+        },
+        EnchantProc: {
+            id: 27,
+            key: "EnchantProc",
+            suns: {
+                name: "Proc Fusion"
+            },
+            dawn: {
+                name: "Enchant Proc"
+            }
+        },
+
+
+        fromId: function(id) {
+            var modelRoot = UGUP.ItemType,
+                cache = modelRoot._idCache;
+            // If we've made the cache, check it
+            if (cache) {
+                return cache[id];
+            }
+            // Haven't made the cache yet? Generate it now, then try again
+            else {
+                cache = {};
+                for (var modelKey in modelRoot) {
+                    if (modelRoot.hasOwnProperty(modelKey) && typeof modelRoot[modelKey] !== "function") {
+                        var model = modelRoot[modelKey];
+                        cache[model.id] = model;
+                    }
+                }
+
+                // Actually store the cache
+                modelRoot._idCache = cache;
+
+                // Now that we've generated the cache, try again
+                return modelRoot.fromId(id);
             }
         }
     },
@@ -1313,6 +1928,7 @@ var UGUP = {
     for (var model in UGUP.Models) {
         if (UGUP.Models.hasOwnProperty(model) && model && typeof UGUP.Models[model] === "object") {
             UGUP.Models[model] = UGUP.model(UGUP.Models[model]);
+            UGUP.Models[model]._modelName = model;
         }
     }
 })();
