@@ -1,0 +1,73 @@
+.render-wrapper .header {text-align: center;}
+
+.character-container {position: relative; left: 150px; top: 15px; height: 520px; width: 500px; margin: auto;}
+.character-container img {position: absolute;}
+
+.equip {position: absolute; z-index: 9}
+
+.avatar-face {z-index: 5; top: -25px}
+.avatar-hair {z-index: 6; top: -30px;}
+.avatar-base {}
+.avatar-mainhand {top:149px;}
+.avatar-offhand {top: 149px; left: 188px;}
+
+.equip-mainhand {top: 66px; left: -100px;}
+.equip-offhand {top: 150px; left: 190px;}
+.equip-shield {top: 150px; left: 190px; z-index: 12;}
+.equip-helmet {top: -25px;}
+.equip-chest {z-index: 4;}
+.equip-gloves {z-index: 5;}
+.equip-gloves-model-left {top: 120px; }
+.equip-gloves-model-right {top: 150px; left: 160px;}
+.equip-gloves-overlay {}
+.equip-gloves-model-left-overlay {top: 154px; z-index: 10;}
+.equip-gloves-model-right-overlay {top: 150px; left: 160px; z-index: 10;}
+.equip-pants {top: 150px; z-index: 4;}
+.equip-boots {top: 270px; z-index: 5;}
+
+/* Special alignment for female toons */
+.female .equip-gloves-model-right, .female .equip-gloves-model-right-overlay {
+    left: 186px;
+}
+.female .equip-mainhand {
+    left: -56px;
+}
+
+.female .equip-offhand {
+    left: 170px;
+}
+
+
+.equip-trinket {
+    top: 350px;
+    left: -150px;
+    height: 84px;
+    width: 84px;
+    border: 1px solid #99C;
+    border-radius: 15px;
+    background-color: aliceblue;
+}
+.equip-mount {
+    top: 250px;
+    left: -150px;
+    height: 84px;
+    width: 84px;
+    border: 1px solid #99C;
+    border-radius: 15px;
+    background-color: aliceblue;
+}
+.equip-pet {
+    top: 375px;
+    left: 300px;
+}
+
+.equip-pet.animated {
+    top: 355px;
+    left: 230px;
+}
+
+#tooltip {position: absolute; z-index: 20; background-color: #1C1C1C; color: #FFF; border-radius: 5px; padding: 5px 10px; font-family: sans-serif; width: 400px; line-height: 1.5em; font-size: .8em;}
+#tooltip img {position: static; z-index: inherit;}
+#tooltip a {text-decoration: none;}
+
+#character_select {position:fixed; z-index:15;}

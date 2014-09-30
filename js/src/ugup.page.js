@@ -6,6 +6,7 @@ function initUgUpTest() {
         optionsArea = document.getElementById("ugup-api-params"),
         runQueryBtn = document.getElementById("upup-api-run-btn"),
         queryArea = document.getElementById("ugup-api-query"),
+        renderArea = document.getElementById("ugup-api-render"),
         resultsArea = document.getElementById("ugup-api-results"),
         opt;
 
@@ -71,6 +72,8 @@ function initUgUpTest() {
             i,
             connectorArgs = "";
 
+        UGUP.Elements.removeAllChildren(renderArea);
+
         if (functionName && platformKey && gameKey) {
             for (i = 0; i < paramInputs.length; i++) {
                 var paramVal = paramInputs[i].value;
@@ -118,7 +121,8 @@ function initUgUpTest() {
 
                 if (renderBtn) {
                     renderBtn.onclick = function() {
-                        model._modelType.render(model, connector, function(el){document.appendChild(el);});
+                        UGUP.Elements.removeAllChildren(renderArea);
+                        model._modelType.render(model, connector, function(el){renderArea.appendChild(el);});
                     };
                 }
 

@@ -11,6 +11,7 @@
     <link href="/inc/bootstrap/css/bootstrap.min.css" rel="stylesheet">
     <link href="/css/subnav.css" rel="stylesheet">
     <link href="//cdnjs.cloudflare.com/ajax/libs/prettify/r298/prettify.min.css" rel="stylesheet">
+    <link href="css/ugup.css" rel="stylesheet">
 
     <style>
         .abbr {
@@ -60,6 +61,7 @@
           <button type="button" id="upup-api-run-btn" class="pull-right btn btn-primary">Run API Query</button>
       </div>
       <div id="ugup-api-query"></div>
+      <div id="ugup-api-render"></div>
       <div id="ugup-api-results"></div>
 
       <hr>
@@ -80,6 +82,7 @@
     <script src="//cdnjs.cloudflare.com/ajax/libs/prettify/r298/prettify.min.js"></script>
     <script src="https://rawgit.com/beautify-web/js-beautify/master/js/lib/beautify.js"></script>
     <script src="js/ugup.js"></script>
+    <script src="js/ugup.equipment.js"></script>
     <script src="js/ugup.page.js"></script>
     <?php
         include "../../../inc/footer.php";

@@ -337,7 +337,14 @@ var UGUP = {
     },
 
     Urls: {
-        assetRoot: "http://5thplanetlots.insnw.net/lots_live/",
+        suns: {
+            assetRoot: "http://5thplanetlots.insnw.net/lots_live/"
+        },
+
+        dawn: {
+            assetRoot: "http://5thplanetdawn.insnw.net/dotd_live/"
+        },
+
         avatarAssetUrl: "images/avatar/",
 
         _buildUrls: function(root) {
@@ -364,6 +371,89 @@ var UGUP = {
             // Might not be the best ever
             // Borrowed from https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/isArray
             return Array.isArray ? Array.isArray(obj) : Object.prototype.toString.call(obj) === '[object Array]';
+        }
+    },
+
+    Elements: {
+        removeAllChildren: function(parentNode) {
+            while (parentNode.firstChild) {
+                parentNode.removeChild(parentNode.firstChild);
+            }
+        }
+    },
+
+    Images: {
+        onError: function() {
+            console.log("There was an image error. Error count: ", this.errorCount, " Object: ", this);
+
+            if (this.src.indexOf("quiskerian") > 0) {
+                this.src = this.src.replace(/quiskerian_invader_\w\w[a-zA-Z]+/, "quiskerian_invader");
+                this.src = this.src.replace(/quiskerian_priest_\w\w[a-zA-Z]+/, "quiskerian_priest");
+            }
+            else if (this.src.indexOf("dimetrodon") > 0) {
+                this.src = this.src.replace(/dimetrodon_\w\w[a-zA-Z]+/, "dimetrodon");
+            }
+            else if (this.src.indexOf("of_the_devils_design") > 0) {
+                this.src = this.src.replace(/([a-zA-Z]+)_[a-zA-Z]+_of_the_devils_design/, "$1_devils_design");
+                return;
+            }
+
+            if (this.src.indexOf("darkspace_destroyer_blaster") > 0) {
+                this.src = this.src.replace(/darkspace_destroyer_blaster(?:_f)?/, "darkspace_destroyer");
+            }
+            else if (this.src.indexOf("darkspace_destroyer_cannon") > 0) {
+                this.src = this.src.replace(/darkspace_destroyer_cannon(?:_f)?/, "darkspace_destroyer");
+            }
+            else if (this.src.indexOf("/off_") > 0) {
+                this.src = this.src.replace("off_", "shield_");
+            }
+            else if (this.src.indexOf("/shield_") > 0) {
+                this.src = this.src.replace("shield_", "oh_");
+            }
+            else if (this.src.indexOf("trouble_in_tokyo") > 0 && this.src.indexOf("main_trouble_in_tokyo") < 0) {
+                this.src = this.src.replace("trouble_in_tokyo", "main_trouble_in_tokyo");
+            }
+            else if (this.src.indexOf("interstellar_safari_journal") > 0) {
+                this.src = this.src.replace("interstellar_safari_journal", "interstellar_safari");
+            }
+
+            else if (this.src.indexOf("s.png") > 0) {
+                this.src = this.src.replace("s.png", ".png");
+            }
+            else if (this.src.indexOf("skorzeny_minimech") > 0) {
+                this.src = this.src.replace("skorzeny_minimech", "general_skorzeny");
+            }
+            else if (this.src.indexOf("_f.png") > 0) {
+                this.src = this.src.replace("_f.png", ".png");
+
+                if (this.src.indexOf("/oh_") > 0) {
+                    this.src = this.src.replace("oh_", "off_");
+                }
+            }
+
+
+
+            if (this.errorCount >= 3) {
+                this.onerror = null;
+            }
+
+            this.errorCount = this.errorCount ? this.errorCount+1 : 1;
+        },
+
+        swapAnimated: function() {
+            // Capture needed info
+            var path = this.src.replace(".png", ".swf"),
+                parent = this.parentNode,
+                embed = document.createElement("embed");
+
+            // Remove the image from the parent
+            parent.removeChild(this);
+
+            embed.className = "equip equip-" + UGUP.ItemType.Pet.key.toLowerCase() + " animated";
+            embed.src = path;
+            embed.setAttribute("wmode", "transparent");
+            parent.appendChild(embed);
+
         }
     },
 
@@ -428,7 +518,39 @@ var UGUP = {
             "deflect": "int", // Bonus PvP Deflection
             "lore": "string",
             "proc_name": "string",
-            "proc_desc": "string"
+            "proc_desc": "string",
+            "image": "string", // Generated, not actually part of UgUp
+//            "femaleImage": "string", // Generated, not actually part of UgUp
+//            "overlay": "string", // Generated, not actually part of UgUp
+
+            initialize: function(response, model) {
+                // Don't want to override it if UgUp ever adds this
+                if (!model.image) {
+                    if (window.EquipmentImages && window.EquipmentImages.Equipment[model.id]) {
+                        var imageSet = window.EquipmentImages.Equipment[model.id];
+                        if (imageSet) {
+                            model.image = imageSet.image;
+                            model.femaleImage = imageSet.femaleImage;
+                            model.overlay = imageSet.overlay;
+                        }
+                    }
+                    else {
+                        model.image = model.equipType.prefix + "_" +
+                            model.name
+                                .replace(model.equipType.name, "")
+                                .replace("Ring", "")
+                                .replace("Trading Card", "")
+                                .replace("MK II", "")
+                                .replace("Data", "")
+                                .replace("Torso", "")
+                                .replace("Legs", "")
+                                .trim()
+                                .replace(/\s/g, "_")
+                                .replace(/\W/g, "")
+                                .toLowerCase() + ".png";
+                    }
+                }
+            }
         },
         EQUIPMENT_TYPE: {
             // This is an OpenUGUP only model not provided anywhere in normal UgUp
@@ -535,14 +657,46 @@ var UGUP = {
             "deflect": "int",
             "lore": "string",
             "proc_name": "string",
-            "proc_desc": "string"
+            "proc_desc": "string",
+            "image": "string", // Generated, not actually part of UgUp
+
+            initialize: function(response, model) {
+                // Don't want to override it if UgUp ever adds this
+                if (!model.image) {
+                    if (window.EquipmentImages && window.EquipmentImages.Mount[model.id]) {
+                        var imageSet = window.EquipmentImages.Mount[model.id];
+                        if (imageSet) {
+                            model.image = imageSet.image;
+                        }
+                    }
+                    else {
+                        model.image = model.name.replace(/\W/g, "").toLowerCase() + ".png";
+                    }
+                }
+            }
         },
         PET_DEFINITION: {
             "id": "int",
             "name": "string",
             "rarity": "ITEM_RARITY",
             "lore": "string",
-            "proc_desc": "string"
+            "proc_desc": "string",
+            "image": "string", // Generated, not actually part of UgUp
+
+            initialize: function(response, model) {
+                // Don't want to override it if UgUp ever adds this
+                if (!model.image) {
+                    if (window.EquipmentImages && window.EquipmentImages.Pet[model.id]) {
+                        var imageSet = window.EquipmentImages.Pet[model.id];
+                        if (imageSet) {
+                            model.image = imageSet.image;
+                        }
+                    }
+                    else {
+                        model.image = model.name.replace(/\s/g, "_").replace(/\W/g, "").toLowerCase() + ".png";
+                    }
+                }
+            }
         },
         PLATFORM: {
             // This is an OpenUGUP only model not provided anywhere in normal UgUp
@@ -556,14 +710,14 @@ var UGUP = {
             // Player Class expects to consume an int (or string of int)
             from: function(data) {
                 return UGUP.PlayerClass.fromId(parseInt(data));
-            }            
+            }
         },
         PROFILE: {
             "fname": "string",
             "level": "int",
             "gender": "string",
             "classID": "int",
-            "class": "PLAYER_CLASS",
+            "class": "PLAYER_CLASS", // Generated, not actually part of UgUp
             "guildID": "int",
             "hairID": "int",
             "skinID": "int",
@@ -612,7 +766,7 @@ var UGUP = {
                                 fullEquipDetails[key] = itemModel;
 
                                 if (goTime) {
-                                    UGUP.Models.PROFILE._renderHelper(model, {}, callback);
+                                    UGUP.Models.PROFILE._renderHelper(model, fullEquipDetails, connector, callback);
                                 }
                             });
                         }
@@ -623,40 +777,151 @@ var UGUP = {
                 }
                 // There wasn't any equipment. Character is naked
                 else {
-                    UGUP.Models.PROFILE._renderHelper(model, {}, callback);
+                    UGUP.Models.PROFILE._renderHelper(model, {}, connector, callback);
                 }
             },
 
-            _renderHelper: function(profileModel, equipMap, callback) {
-                var div = document.createElement("div"),
-                    avatarUrlRoot = UGUP.Urls.assetRoot + UGUP.Urls.avatarAssetUrl,
+            _renderHelper: function(profileModel, equipMap, connector, callback) {
+                var wrapper = document.createElement("div"),
+                    div = document.createElement("div"),
+                    header = document.createElement("div"),
+                    assetRoot = UGUP.Urls[connector.cfg.game].assetRoot,
+                    avatarUrlRoot = assetRoot + UGUP.Urls.avatarAssetUrl,
                     avatar = {
                         base: "base",
-                        face: "face_" + profileModel.faceID,
-                        hair: "hair_" + profileModel.hairID
-                    };
+                        face: "face_" + (profileModel.faceID+1),
+                        hair: "hair_" + profileModel.hairID,
+                        mainhand: "hand_mh1",
+                        offhand: "hand_oh1"
+                    },
+                    key, img;
 
-                div.style.position = "relative";
+                wrapper.className = "render-wrapper";
 
-                for (var key in avatar) {
+                // Set up the header
+                header.className = "header";
+                header.appendChild(document.createTextNode(profileModel.fname + " - Level " + profileModel.level + " (" + profileModel["class"][connector.cfg.game].name + ")"));
+                wrapper.appendChild(header);
+
+                // Set up the body div
+                div.className = "character-container";
+                // If we're rendering a female character, add that for CSS reasons
+                if (profileModel.gender === "F") {
+                    div.className += " female";
+                }
+                wrapper.appendChild(div);
+
+
+
+                // Set up the naked person
+                for (key in avatar) {
                     if (avatar.hasOwnProperty(key)) {
-                        var img = document.createElement("img");
+                        // Create the image elements and give them the correct class
+                        img = document.createElement("img");
                         img.className = "avatar-" + key;
+
+                        // If we're doing a female character, switch the images
                         if (profileModel.gender === "F") {
                             avatar[key] += "_f";
                         }
 
+                        // Create the absolute source path of the images
                         img.src = avatarUrlRoot + avatar[key] + ".png";
-//                        avatar[key] = avatarUrlRoot + avatar[key] + ".png";
 
+                        // Add the image to the rendered div
                         div.appendChild(img);
                     }
                 }
 
-                if (typeof callback === "function") {
-                    callback(div);
+                // Draw the equipment on the person
+                for (key in equipMap) {
+                    if (equipMap.hasOwnProperty(key)) {
+                        // Create the image elements and give them the correct class
+                        var equipModel = equipMap[key],
+                            imageName = equipModel.image.split(".png")[0],
+                            assetPath,
+                            isEquip = false, isPet = false, isMount = false;
+
+                        switch(equipModel._modelType._modelName) {
+                            case "EQUIPMENT_DEFINITION":
+                                assetPath = UGUP.ItemType.Equipment.assetPath;
+                                isEquip = true;
+                                break;
+                            case "MOUNT_DEFINITION":
+                                assetPath = UGUP.ItemType.Mount.assetPath;
+                                isMount = true;
+                                break;
+                            case "PET_DEFINITION":
+                                assetPath = UGUP.ItemType.Pet.assetPath;
+                                isPet = true;
+                                break;
+                        }
+
+                        // Gloves are weird
+                        if (equipModel.equipType && equipModel.equipType.key === UGUP.EquipmentType.Gloves.key) {
+                            var extension = (profileModel.gender === "F" ? "_f" : "") + ".png";
+                            img = document.createElement("img");
+                            img.className = "equip equip-gloves equip-gloves-model-left";
+                            img.src = assetRoot + "images/" + assetPath + imageName + "_mh1" + extension;
+                            img.onerror = UGUP.Images.onError;
+                            div.appendChild(img);
+
+                            img = document.createElement("img");
+                            img.className = "equip equip-gloves equip-gloves-model-left-overlay";
+                            img.src = assetRoot + "images/" + assetPath + imageName + "_mh1f" + extension;
+                            img.onerror = UGUP.Images.onError;
+                            div.appendChild(img);
+
+                            img = document.createElement("img");
+                            img.className = "equip equip-gloves equip-gloves-model-right";
+                            img.src = assetRoot + "images/" + assetPath + imageName + "_oh1" + extension;
+                            img.onerror = UGUP.Images.onError;
+                            div.appendChild(img);
+
+                            img = document.createElement("img");
+                            img.className = "equip equip-gloves equip-gloves-model-right-overlay";
+                            img.src = assetRoot + "images/" + assetPath + imageName + "_oh1f" + extension;
+                            img.onerror = UGUP.Images.onError;
+                            div.appendChild(img);
+
+                        }
+                        // Everything that isn't gloves
+                        else {
+                            // If we're doing a female character's armor, switch the images
+                            if (profileModel.gender === "F") {
+                                if (equipModel.femaleImage && equipModel.femaleImage !== "null") {
+                                    imageName = equipModel.femaleImage.split(".png")[0];
+                                }
+                                if (equipModel.femaleImage && equipModel.femaleImage === "null") {
+                                    imageName = equipModel.image.split(".png")[0];
+                                }
+                                else if (equipModel.equipType &&
+                                    equipModel.equipType.key !== UGUP.EquipmentType.Trinket.key) {
+                                    imageName += "_f";
+                                }
+                            }
+
+                            img = document.createElement("img");
+                            img.className = "equip equip-" + key.toLowerCase();
+
+                            // Create the absolute source path of the images
+                            img.src = assetRoot + "images/" + assetPath + imageName + ".png";
+                            img.onerror = UGUP.Images.onError;
+
+                            if (isPet) {
+                                img.onclick = UGUP.Images.swapAnimated;
+                            }
+
+                            // Add the image to the rendered div
+                            div.appendChild(img);
+                        }
+                    }
                 }
 
+                // Return the div
+                if (typeof callback === "function") {
+                    callback(wrapper);
+                }
             }
         },
         PROFILE_MESSAGE: {
@@ -844,48 +1109,57 @@ var UGUP = {
         MainHand: {
             id: 1,
             key: "MainHand",
+            prefix: "main",
             name: "Main Hand"
         },
         OffHand: {
             id: 2,
             key: "OffHand",
+            prefix: "off",
             name: "Off Hand"
         },
         Helmet: {
             id: 3,
             key: "Helmet",
+            prefix: "helm",
             name: "Helmet"
         },
         Chest: {
             id: 4,
             key: "Chest",
+            prefix: "chest",
             name: "Chest"
         },
         Gloves: {
             id: 5,
             key: "Gloves",
+            prefix: "gloves",
             name: "Gloves"
         },
         Pants: {
             id: 6,
             key: "Pants",
+            prefix: "pants",
             name: "Pants"
         },
         Boots: {
             id: 7,
             key: "Boots",
+            prefix: "boots",
             name: "Boots"
         },
         Trinket: {
             id: 8,
             key: "Trinket",
+            prefix: "trinket",
             name: "Trinket"
         },
-        // Shields serve the same purpose as Off Hands.
+        // Shields serve the same purpose as Off Hands and take up the same slot.
         // Generally, a shield will physically cover the character's entire offhand arm vs being held in the hand.
         Shield: {
             id: 9,
             key: "Shield",
+            prefix: "off",
             name: "Shield"
         },
 
@@ -1007,6 +1281,7 @@ var UGUP = {
         Equipment: {
             id: 1,
             key: "Equipment",
+            assetPath: "items/equip/",
             suns: {
                 name: "Equipment"
             },
@@ -1017,6 +1292,7 @@ var UGUP = {
         Magic: {
             id: 2,
             key: "Magic",
+            assetPath: "items/magic/",
             suns: {
                 name: "Tactic"
             },
@@ -1027,6 +1303,7 @@ var UGUP = {
         Mount: {
             id: 3,
             key: "Mount",
+            assetPath: "items/mounts/",
             suns: {
                 name: "Utility" // Note that Utilities are NOT equipment, but Trinkets are.
             },
@@ -1037,6 +1314,7 @@ var UGUP = {
         General: {
             id: 4,
             key: "General",
+            assetPath: "items/generals/",
             suns: {
                 name: "Officer"
             },
@@ -1047,6 +1325,7 @@ var UGUP = {
         Legion: {
             id: 5,
             key: "Legion",
+            assetPath: "items/legions/",
             suns: {
                 name: "Ship"
             },
@@ -1057,6 +1336,7 @@ var UGUP = {
         Troop: {
             id: 6,
             key: "Troop",
+            assetPath: "items/troops/",
             suns: {
                 name: "Crew"
             },
@@ -1067,6 +1347,7 @@ var UGUP = {
         Collection: {
             id: 7,
             key: "Collection",
+            assetPath: "items/collections/",
             suns: {
                 name: "Collection"
             },
@@ -1077,6 +1358,7 @@ var UGUP = {
         Craft: {
             id: 8,
             key: "Craft",
+            assetPath: "items/crafts/", // Not sure if this is right
             suns: {
                 name: "Craft"
             },
@@ -1088,6 +1370,7 @@ var UGUP = {
         Gift: {
             id: 10,
             key: "Gift",
+            assetPath: "items/gifts/", // Not sure if this is right
             suns: {
                 name: "Gift"
             },
@@ -1098,6 +1381,7 @@ var UGUP = {
         Consumable: {
             id: 11,
             key: "Consumable",
+            assetPath: "items/consumables/",
             suns: {
                 name: "Consumable"
             },
@@ -1118,6 +1402,7 @@ var UGUP = {
         Land: {
             id: 13,
             key: "Land",
+            assetPath: "building/",
             suns: {
                 name: "Facility" // This type of facility is no longer in use. Facilities are not items since the Facilities revamp.
             },
@@ -1148,6 +1433,7 @@ var UGUP = {
         Essence: {
             id: 16,
             key: "Essence",
+            assetPath: "items/essences/",
             suns: {
                 name: "Raid Data"
             },
@@ -1197,6 +1483,7 @@ var UGUP = {
         Pet: {
             id: 21,
             key: "Pet",
+            assetPath: "items/pets/",
             suns: {
                 name: "Sidekick"
             },
@@ -1207,6 +1494,7 @@ var UGUP = {
         Raid: {
             id: 22,
             key: "Raid",
+            assetPath: "bosses/",
             suns: {
                 name: "Raid"
             },
@@ -1247,6 +1535,7 @@ var UGUP = {
         Engineering: {
             id: 26,
             key: "Engineering",
+            assetPath: "items/engineering/",
             suns: {
                 name: "Engineering"
             },
