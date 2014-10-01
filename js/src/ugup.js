@@ -892,7 +892,7 @@ var UGUP = {
                                 if (equipModel.femaleImage && equipModel.femaleImage !== "null") {
                                     imageName = equipModel.femaleImage.split(".png")[0];
                                 }
-                                if (equipModel.femaleImage && equipModel.femaleImage === "null") {
+                                else if (equipModel.femaleImage && equipModel.femaleImage === "null") {
                                     imageName = equipModel.image.split(".png")[0];
                                 }
                                 else if (equipModel.equipType &&
@@ -972,10 +972,15 @@ var UGUP = {
             }
         },
         RAID_DIFFICULTY: {
+            "level": "RAID_DIFFICULTY_LEVEL",
+            "num_runes": "int",
+            "health": "int"
+        },
+        RAID_DIFFICULTY_LEVEL: {
             // This is an OpenUGUP only model not provided anywhere in normal UgUp
             // Raid Difficulty expects to consume an int (or string of int)
             from: function(data) {
-                return UGUP.RaidDifficulty.fromId(parseInt(data));
+                return UGUP.RaidDifficultyLevel.fromId(parseInt(data));
             }
         },
         RAID_SIZE: {
@@ -1689,7 +1694,7 @@ var UGUP = {
             },
 
             fromId: function(id) {
-                var modelRoot = UGUP.LegionRace.SUNS,
+                var modelRoot = UGUP.LegionRole.SUNS,
                     cache = modelRoot._idCache;
                 // If we've made the cache, check it
                 if (cache) {
@@ -1748,7 +1753,7 @@ var UGUP = {
             },
 
             fromId: function(id) {
-                var modelRoot = UGUP.LegionRace.SUNS,
+                var modelRoot = UGUP.LegionSource.SUNS,
                     cache = modelRoot._idCache;
                 // If we've made the cache, check it
                 if (cache) {
@@ -1990,7 +1995,7 @@ var UGUP = {
         }
     },
 
-    RaidDifficulty: {
+    RaidDifficultyLevel: {
         1: {
             name: "Normal",
             shortName: "N"
@@ -2009,7 +2014,7 @@ var UGUP = {
         },
 
         fromId: function(id) {
-            return UGUP.RaidDifficulty[id];
+            return UGUP.RaidDifficultyLevel[id];
         }
     },
 
@@ -2136,7 +2141,7 @@ var UGUP = {
         },
 
         fromId: function(id) {
-            var modelRoot = UGUP.LegionRace.SUNS,
+            var modelRoot = UGUP.RaidSize,
                 cache = modelRoot._idCache;
             // If we've made the cache, check it
             if (cache) {
@@ -2184,7 +2189,7 @@ var UGUP = {
         },
 
         fromId: function(id) {
-            var modelRoot = UGUP.LegionRace.SUNS,
+            var modelRoot = UGUP.RecipeType,
                 cache = modelRoot._idCache;
             // If we've made the cache, check it
             if (cache) {
