@@ -524,30 +524,32 @@ var UGUP = {
 //            "overlay": "string", // Generated, not actually part of UgUp
 
             initialize: function(response, model) {
-                // Don't want to override it if UgUp ever adds this
-                if (!model.image) {
-                    if (window.EquipmentImages && window.EquipmentImages.Equipment[model.id]) {
-                        var imageSet = window.EquipmentImages.Equipment[model.id];
-                        if (imageSet) {
-                            model.image = imageSet.image;
-                            model.femaleImage = imageSet.femaleImage;
-                            model.overlay = imageSet.overlay;
+                if (response) {
+                    // Don't want to override it if UgUp ever adds this
+                    if (!model.image) {
+                        if (window.EquipmentImages && window.EquipmentImages.Equipment[model.id]) {
+                            var imageSet = window.EquipmentImages.Equipment[model.id];
+                            if (imageSet) {
+                                model.image = imageSet.image;
+                                model.femaleImage = imageSet.femaleImage;
+                                model.overlay = imageSet.overlay;
+                            }
                         }
-                    }
-                    else {
-                        model.image = model.equipType.prefix + "_" +
-                            model.name
-                                .replace(model.equipType.name, "")
-                                .replace("Ring", "")
-                                .replace("Trading Card", "")
-                                .replace("MK II", "")
-                                .replace("Data", "")
-                                .replace("Torso", "")
-                                .replace("Legs", "")
-                                .trim()
-                                .replace(/\s/g, "_")
-                                .replace(/\W/g, "")
-                                .toLowerCase() + ".png";
+                        else {
+                            model.image = model.equipType.prefix + "_" +
+                                model.name
+                                    .replace(model.equipType.name, "")
+                                    .replace("Ring", "")
+                                    .replace("Trading Card", "")
+                                    .replace("MK II", "")
+                                    .replace("Data", "")
+                                    .replace("Torso", "")
+                                    .replace("Legs", "")
+                                    .trim()
+                                    .replace(/\s/g, "_")
+                                    .replace(/\W/g, "")
+                                    .toLowerCase() + ".png";
+                        }
                     }
                 }
             }
@@ -661,16 +663,18 @@ var UGUP = {
             "image": "string", // Generated, not actually part of UgUp
 
             initialize: function(response, model) {
-                // Don't want to override it if UgUp ever adds this
-                if (!model.image) {
-                    if (window.EquipmentImages && window.EquipmentImages.Mount[model.id]) {
-                        var imageSet = window.EquipmentImages.Mount[model.id];
-                        if (imageSet) {
-                            model.image = imageSet.image;
+                if (response) {
+                    // Don't want to override it if UgUp ever adds this
+                    if (!model.image) {
+                        if (window.EquipmentImages && window.EquipmentImages.Mount[model.id]) {
+                            var imageSet = window.EquipmentImages.Mount[model.id];
+                            if (imageSet) {
+                                model.image = imageSet.image;
+                            }
                         }
-                    }
-                    else {
-                        model.image = model.name.replace(/\W/g, "").toLowerCase() + ".png";
+                        else {
+                            model.image = model.name.replace(/\W/g, "").toLowerCase() + ".png";
+                        }
                     }
                 }
             }
@@ -684,16 +688,18 @@ var UGUP = {
             "image": "string", // Generated, not actually part of UgUp
 
             initialize: function(response, model) {
-                // Don't want to override it if UgUp ever adds this
-                if (!model.image) {
-                    if (window.EquipmentImages && window.EquipmentImages.Pet[model.id]) {
-                        var imageSet = window.EquipmentImages.Pet[model.id];
-                        if (imageSet) {
-                            model.image = imageSet.image;
+                if (response) {
+                    // Don't want to override it if UgUp ever adds this
+                    if (!model.image) {
+                        if (window.EquipmentImages && window.EquipmentImages.Pet[model.id]) {
+                            var imageSet = window.EquipmentImages.Pet[model.id];
+                            if (imageSet) {
+                                model.image = imageSet.image;
+                            }
                         }
-                    }
-                    else {
-                        model.image = model.name.replace(/\s/g, "_").replace(/\W/g, "").toLowerCase() + ".png";
+                        else {
+                            model.image = model.name.replace(/\s/g, "_").replace(/\W/g, "").toLowerCase() + ".png";
+                        }
                     }
                 }
             }
@@ -751,16 +757,19 @@ var UGUP = {
                                 var goTime, key;
                                 if (!--j) {goTime = true;}
 
-                                switch(itemModel._modelType._modelName) {
-                                    case "EQUIPMENT_DEFINITION":
-                                        key = itemModel.equipType.key;
-                                        break;
-                                    case "MOUNT_DEFINITION":
-                                        key = UGUP.ItemType.Mount.key;
-                                        break;
-                                    case "PET_DEFINITION":
-                                        key = UGUP.ItemType.Pet.key;
-                                        break;
+                                // I think this check is only needed when UgUp is acting up
+                                if (response && itemModel && itemModel._raw) {
+                                    switch(itemModel._modelType._modelName) {
+                                        case "EQUIPMENT_DEFINITION":
+                                            key = itemModel.equipType.key;
+                                            break;
+                                        case "MOUNT_DEFINITION":
+                                            key = UGUP.ItemType.Mount.key;
+                                            break;
+                                        case "PET_DEFINITION":
+                                            key = UGUP.ItemType.Pet.key;
+                                            break;
+                                    }
                                 }
 
                                 fullEquipDetails[key] = itemModel;
