@@ -757,8 +757,7 @@ var UGUP = {
                                 var goTime, key;
                                 if (!--j) {goTime = true;}
 
-                                // I think this check is only needed when UgUp is acting up
-                                if (response && itemModel && itemModel._raw) {
+                                if (itemModel && itemModel._raw) {
                                     switch(itemModel._modelType._modelName) {
                                         case "EQUIPMENT_DEFINITION":
                                             key = itemModel.equipType.key;
