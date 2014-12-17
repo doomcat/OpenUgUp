@@ -355,6 +355,7 @@ var UGUP = {
             urls.USER_ID = urls.ROOT + "profile/id/[username]";
             urls.PROFILE = urls.ROOT + "profile/[id]";
             urls.RAID = urls.ROOT + "raid/hash/[id]/[hash]";
+            urls.SHARED_RAIDS = urls.ROOT + "raid/shared";
 
             for (var i = UGUP.API_DEFINITION_TYPES.length - 1; i >= 0; i--) {
                 var path = UGUP.API_DEFINITION_TYPES[i];
@@ -991,9 +992,31 @@ var UGUP = {
                 return UGUP.RaidDifficultyLevel.fromId(parseInt(data));
             }
         },
+        RAID_HELP: {
+            // This is not directly a UgUp model; these values are extracted from a string typically
+            "raid_id": "int",
+            "difficulty": "int",
+            "raid_boss": "string",
+            "hash": "string",
+            "serverid": "int",
+
+            // Raid Help expects to consume a WC style string like
+            //"<raidhelp raid_id='21300938' difficulty='4' raid_boss='baroness' hash='HEZEdsB3RP' serverid='1'>"
+            from: function(data, connector) {
+                var attributes = data.replace(/<\s*|\s*raidhelp\s*|\s*>/gi, "").split(" "),
+                    map = {},
+                    i, tmp;
+                for (i = 0; i < attributes.length; i++) {
+                    tmp = attributes[i].split("=");
+                    map[tmp[0]] = tmp[1].replace(/\W/g, "");
+                }
+
+                return UGUP.Models._defaultFromMethod.call(this, map, connector);
+            }
+        },
         RAID_SIZE: {
             // This is an OpenUGUP only model not provided anywhere in normal UgUp
-            // Raid Difficulty expects to consume an int (or string of int)
+            // Raid Size expects to consume an int (or string of int)
             from: function(data) {
                 return UGUP.RaidSize.fromId(parseInt(data));
             }
@@ -1037,6 +1060,12 @@ var UGUP = {
             }
         },
 
+        WC_RAIDS: {
+            "create_time": "date",
+            "id": "int",
+            "link": "RAID_HELP"
+        },
+
         // -- Models Helper Methods -- //
         _defaultFromMethod: function(data, connector) {
             var result = {};
@@ -1075,21 +1104,43 @@ var UGUP = {
                         parsedJSON = tmpJson.result;
 
                         // If the service reports a data success
-                        if (!!tmpJson.success) {
+                        if (tmpJson.success === 'true') {
                             // If we know how to parse this kind of model
                             if (modelType && typeof modelType.from === "function") {
-                                // Parse into the model
-                                model = modelType.from(parsedJSON, connector);
-                                if (model) {
-                                    if (typeof modelType.initialize === "function") {
-                                        modelType.initialize(parsedJSON, model);
+
+                                if (UGUP.Arrays.isArray(parsedJSON)) {
+                                    model = [];
+                                    for (var i = 0, tmpModel; i < parsedJSON.length; i++) {
+                                        tmpModel = modelType.from(parsedJSON[i], connector);
+                                        if (tmpModel) {
+                                            if (typeof modelType.initialize === "function") {
+                                                modelType.initialize(parsedJSON, tmpModel);
+                                            }
+                                            tmpModel._raw = parsedJSON;
+                                            tmpModel._modelType = modelType;
+                                            model.push(tmpModel);
+                                        }
+                                        else {
+                                            window.console && window.console.warn("UGUP.JS: Failed to fill model type: ", modelType, " from: ", parsedJSON);
+                                        }
                                     }
-                                    model._raw = parsedJSON;
-                                    model._modelType = modelType;
                                 }
                                 else {
-                                    window.console && window.console.warn("UGUP.JS: Failed to fill model type: ", modelType, " from: ", parsedJSON);
+                                    // Parse into the model
+                                    model = modelType.from(parsedJSON, connector);
+                                    if (model) {
+                                        if (typeof modelType.initialize === "function") {
+                                            modelType.initialize(parsedJSON, model);
+                                        }
+                                        model._raw = parsedJSON;
+                                        model._modelType = modelType;
+                                    }
+                                    else {
+                                        window.console && window.console.warn("UGUP.JS: Failed to fill model type: ", modelType, " from: ", parsedJSON);
+                                    }
                                 }
+
+
                             }
                             else {
                                 // Don't know how to deal with this
@@ -1102,6 +1153,9 @@ var UGUP = {
                             // TODO Better logging mechanism
                             // TODO Specific handling of known error codes
                             window.console && window.console.error("UGUP.JS: Failed API call. Code: ", tmpJson.code, " Reason: ", tmpJson.reason);
+
+                            // Return the failure to the caller
+                            parsedJSON = tmpJson;
                         }
                     }
                     catch(ex) {
@@ -2348,6 +2402,13 @@ UGUP.Suns.prototype = {
             url: this.urls.RAID,
             urlParams: {"id": id, "hash": hash},
             callback: UGUP.Models._wrapModelCallback(UGUP.Models.RAID, callback, this)
+        });
+    },
+
+    fetchSharedRaids: function(callback) {
+        this.ajax({
+            url: this.urls.SHARED_RAIDS,
+            callback: UGUP.Models._wrapModelCallback(UGUP.Models.WC_RAIDS, callback, this)
         });
     }
 };

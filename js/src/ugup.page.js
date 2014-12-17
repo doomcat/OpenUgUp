@@ -97,7 +97,7 @@ function initUgUpTest() {
 
             var queryHTML = "Running Query: <br>";
             queryHTML += "<pre class='code prettyprint lang-js'>var connector = new UGUP." + gameKey + "(" + connectorArgs + ");\n";
-            queryHTML += "connector." + functionName + "(" + paramValues.join(", ") + ", callback);</pre><br>";
+            queryHTML += "connector." + functionName + "(" + (paramValues.length ? paramValues.join(", ") + ", ": "") + "callback);</pre><br>";
 
             queryArea.innerHTML = queryHTML;
 
