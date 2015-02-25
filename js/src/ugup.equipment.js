@@ -5357,6 +5357,38 @@ window.EquipmentImages = {
             image: "trinket_crimson_hood.png",
             femaleImage: "null"
         },
+        1336: {
+            image: "main_elven.png",
+            femaleImage: "null"
+        },
+        1337: {
+            image: "off_elven.png",
+            femaleImage: "null"
+        },
+        1338: {
+            image: "helm_elven.png",
+            femaleImage: "helm_elven_f.png"
+        },
+        1339: {
+            image: "chest_elven.png",
+            femaleImage: "chest_elven_f.png"
+        },
+        1340: {
+            image: "gloves_elven.png",
+            femaleImage: "gloves_elven_f.png"
+        },
+        1341: {
+            image: "pants_elven.png",
+            femaleImage: "pants_elven_f.png"
+        },
+        1342: {
+            image: "boots_elven.png",
+            femaleImage: "boots_elven_f.png"
+        },
+        1343: {
+            image: "trinket_elven.png",
+            femaleImage: "null"
+        },
         1344: {
             image: "main_snow_queen.png",
             femaleImage: "null"
@@ -5838,8 +5870,8 @@ window.EquipmentImages = {
             femaleImage: "helm_multifaceted_gaze_f.png"
         },
         1464: {
-            image: "gloves_void_bracelets.png",
-            femaleImage: "gloves_void_bracelets_f.png"
+            image: "gloves_void_bracelets_v2.png",
+            femaleImage: "gloves_void_bracelets_v2_f.png"
         },
         1465: {
             image: "pants_two_tail.png",
@@ -6448,6 +6480,11 @@ window.EquipmentImages = {
         1616: {
             image: "gloves_captain_carnage.png",
             femaleImage: "gloves_captain_carnage_f.png"
+        },
+        1617: {
+            image: "main_ramraid_hacker.png",
+            femaleImage: "null",
+            overlay: "main_ramraid_hacker.png"
         },
         1618: {
             image: "off_ramraid_hacker.png",
@@ -7357,6 +7394,228 @@ window.EquipmentImages = {
         1848: {
             image: "boots_hypercon_cosplay.png",
             femaleImage: "boots_hypercon_cosplay_f.png"
+        },
+        1849: {
+            image: "main_christmas_caroler_v2.png",
+            femaleImage: "null",
+            overlay: "main_christmas_caroler_v2.png"
+        },
+        1850: {
+            image: "off_christmas_caroler.png",
+            femaleImage: "null"
+        },
+        1851: {
+            image: "helm_christmas_caroler.png",
+            femaleImage: "helm_christmas_caroler_f.png"
+        },
+        1852: {
+            image: "chest_christmas_caroler.png",
+            femaleImage: "chest_christmas_caroler_f.png"
+        },
+        1853: {
+            image: "gloves_christmas_caroler.png",
+            femaleImage: "gloves_christmas_caroler_f.png"
+        },
+        1854: {
+            image: "pants_christmas_caroler.png",
+            femaleImage: "pants_christmas_caroler_f.png"
+        },
+        1855: {
+            image: "boots_christmas_caroler.png",
+            femaleImage: "boots_christmas_caroler_f.png"
+        },
+        1856: {
+            image: "trinket_christmas_caroler.png",
+            femaleImage: "null"
+        },
+        1857: {
+            image: "main_candy_striper.png",
+            femaleImage: "null"
+        },
+        1858: {
+            image: "off_candy_striper.png",
+            femaleImage: "null"
+        },
+        1859: {
+            image: "helm_candy_striper.png",
+            femaleImage: "helm_candy_striper_f.png"
+        },
+        1860: {
+            image: "chest_candy_striper.png",
+            femaleImage: "chest_candy_striper_f.png"
+        },
+        1861: {
+            image: "glove_candy_striper_v2.png",
+            femaleImage: "glove_candy_striper_v2_f.png"
+        },
+        1862: {
+            image: "pants_candy_striper.png",
+            femaleImage: "pants_candy_striper_f.png"
+        },
+        1863: {
+            image: "boots_candy_striper.png",
+            femaleImage: "boots_candy_striper_f.png"
+        },
+        1864: {
+            image: "trinket_candy_striper.png",
+            femaleImage: "null"
+        },
+        1865: {
+            image: "helm_fused_sian.png",
+            femaleImage: "helm_fused_sian_f.png"
+        },
+        1866: {
+            image: "chest_fused_sian.png",
+            femaleImage: "chest_fused_sian_f.png"
+        },
+        1867: {
+            image: "gloves_fused_sian.png",
+            femaleImage: "gloves_fused_sian_f.png"
+        },
+        1868: {
+            image: "pants_fused_sian.png",
+            femaleImage: "pants_fused_sian_f.png"
+        },
+        1869: {
+            image: "boots_fused_sian.png",
+            femaleImage: "boots_fused_sian_f.png"
+        },
+        1870: {
+            image: "main_awesome_claws_v2.png",
+            femaleImage: "null"
+        },
+        1871: {
+            image: "off_awesome_claws_v2.png",
+            femaleImage: "null"
+        },
+        1872: {
+            image: "MH_white_rook.png",
+            femaleImage: "null",
+            overlay: "MH_white_rook.png"
+        },
+        1873: {
+            image: "OH_white_rook.png",
+            femaleImage: "null"
+        },
+        1874: {
+            image: "helm_white_rook.png",
+            femaleImage: "helm_white_rook_f.png"
+        },
+        1875: {
+            image: "chest_white_rook.png",
+            femaleImage: "chest_white_rook_f.png"
+        },
+        1876: {
+            image: "gloves_white_rook.png",
+            femaleImage: "gloves_white_rook_f.png"
+        },
+        1877: {
+            image: "pants_white_rook.png",
+            femaleImage: "pants_white_rook_f.png"
+        },
+        1878: {
+            image: "boots_white_rook.png",
+            femaleImage: "boots_white_rook_f.png"
+        },
+        1879: {
+            image: "trinket_white_rook.png",
+            femaleImage: "null"
+        },
+        1880: {
+            image: "main_black_bishop.png",
+            femaleImage: "null"
+        },
+        1881: {
+            image: "off_black_bishop.png",
+            femaleImage: "null"
+        },
+        1882: {
+            image: "helm_black_bishop.png",
+            femaleImage: "helm_black_bishop_f.png"
+        },
+        1883: {
+            image: "chest_black_bishop.png",
+            femaleImage: "chest_black_bishop_f.png"
+        },
+        1884: {
+            image: "gloves_black_bishop.png",
+            femaleImage: "gloves_black_bishop_f.png"
+        },
+        1885: {
+            image: "pants_black_bishopr.png",
+            femaleImage: "pants_black_bishopr_f.png"
+        },
+        1886: {
+            image: "boots_black_bishop.png",
+            femaleImage: "boots_black_bishop_f.png"
+        },
+        1887: {
+            image: "trinket_black_bishop.png",
+            femaleImage: "null"
+        },
+        1888: {
+            image: "mh_robot_rebellion.png",
+            femaleImage: "null"
+        },
+        1889: {
+            image: "oh_robot_rebellion.png",
+            femaleImage: "null"
+        },
+        1890: {
+            image: "helm_robot_rebellion.png",
+            femaleImage: "helm_robot_rebellion_f.png"
+        },
+        1891: {
+            image: "chest_robot_rebellion.png",
+            femaleImage: "chest_robot_rebellion_f.png"
+        },
+        1892: {
+            image: "glove_robot_rebellion.png",
+            femaleImage: "glove_robot_rebellion_f.png"
+        },
+        1893: {
+            image: "pants_robot_rebellion.png",
+            femaleImage: "pants_robot_rebellion_f.png"
+        },
+        1894: {
+            image: "boots_robot_rebellion.png",
+            femaleImage: "boots_robot_rebellion_f.png"
+        },
+        1895: {
+            image: "trinket_robot_rebellion.png",
+            femaleImage: "null"
+        },
+        1896: {
+            image: "main_training_set.png",
+            femaleImage: "null"
+        },
+        1897: {
+            image: "off_training_set.png",
+            femaleImage: "null"
+        },
+        1898: {
+            image: "helm_training_set.png",
+            femaleImage: "helm_training_set_f.png"
+        },
+        1899: {
+            image: "chest_training_set.png",
+            femaleImage: "chest_training_set_f.png"
+        },
+        1900: {
+            image: "glove_training_set.png",
+            femaleImage: "glove_training_set_f.png"
+        },
+        1901: {
+            image: "pants_training_set.png",
+            femaleImage: "pants_training_set_f.png"
+        },
+        1902: {
+            image: "boots_training_set.png",
+            femaleImage: "boots_training_set_f.png"
+        },
+        1903: {
+            image: "trinket_training_set.png",
+            femaleImage: "null"
         }
     },
     Mount: {
@@ -7994,7 +8253,7 @@ window.EquipmentImages = {
             image: "utility_tactical_terror.png"
         },
         212: {
-            image: "utility_sussuran_biker_v2.png"
+            image: "utility_sussurran_biker_v2.png"
         },
         213: {
             image: "utility_slither.png"
@@ -8013,6 +8272,24 @@ window.EquipmentImages = {
         },
         218: {
             image: "utility_gas_attack.png"
+        },
+        219: {
+            image: "utility_christmas_caroler.png"
+        },
+        220: {
+            image: "utility_candy_striper.png"
+        },
+        221: {
+            image: "utility_white_rook.png"
+        },
+        222: {
+            image: "utility_black_bishop.png"
+        },
+        223: {
+            image: "utility_robot_rebellion.png"
+        },
+        224: {
+            image: "utility_training_set.png"
         }
     },
     Pet: {
