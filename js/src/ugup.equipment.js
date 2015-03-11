@@ -7495,7 +7495,8 @@ window.EquipmentImages = {
         },
         1873: {
             image: "OH_white_rook.png",
-            femaleImage: "null"
+            femaleImage: "null",
+            overlay: "OH_white_rook.png"
         },
         1874: {
             image: "helm_white_rook.png",
@@ -7615,6 +7616,103 @@ window.EquipmentImages = {
         },
         1903: {
             image: "trinket_training_set.png",
+            femaleImage: "null"
+        },
+        1904: {
+            image: "main_ghost.png",
+            femaleImage: "null"
+        },
+        1905: {
+            image: "off_ghost.png",
+            femaleImage: "null"
+        },
+        1906: {
+            image: "helm_ghost.png",
+            femaleImage: "helm_ghost_f.png"
+        },
+        1907: {
+            image: "chest_ghost.png",
+            femaleImage: "chest_ghost_f.png"
+        },
+        1908: {
+            image: "gloves_ghost.png",
+            femaleImage: "gloves_ghost_f.png"
+        },
+        1909: {
+            image: "pants_ghost.png",
+            femaleImage: "pants_ghost_f.png"
+        },
+        1910: {
+            image: "boots_ghost.png",
+            femaleImage: "boots_ghost_f.png"
+        },
+        1911: {
+            image: "trinket_ghost.png",
+            femaleImage: "null"
+        },
+        1912: {
+            image: "main_remote_combat_set.png",
+            femaleImage: "null"
+        },
+        1913: {
+            image: "off_remote_combat_set.png",
+            femaleImage: "null",
+            overlay: "off_remote_combat_set.png"
+        },
+        1914: {
+            image: "helm_remote_combat_set.png",
+            femaleImage: "helm_remote_combat_set_f.png"
+        },
+        1915: {
+            image: "chest_remote_combat_set.png",
+            femaleImage: "chest_remote_combat_set_f.png"
+        },
+        1916: {
+            image: "glove_remote_combat_set.png",
+            femaleImage: "glove_remote_combat_set_f.png"
+        },
+        1917: {
+            image: "pants_remote_combat_set.png",
+            femaleImage: "pants_remote_combat_set_f.png"
+        },
+        1918: {
+            image: "boots_remote_combat_set.png",
+            femaleImage: "boots_remote_combat_set_f.png"
+        },
+        1919: {
+            image: "trinket_remote_combat_set.png",
+            femaleImage: "null"
+        },
+        1920: {
+            image: "main_gunsuit_set.png",
+            femaleImage: "null"
+        },
+        1921: {
+            image: "off_gunsuit_set.png",
+            femaleImage: "null"
+        },
+        1922: {
+            image: "helm_gunsuit_set.png",
+            femaleImage: "helm_gunsuit_set_f.png"
+        },
+        1923: {
+            image: "chest_gunsuit_set.png",
+            femaleImage: "chest_gunsuit_set_f.png"
+        },
+        1924: {
+            image: "gloves_gunsuit_set.png",
+            femaleImage: "gloves_gunsuit_set_f.png"
+        },
+        1925: {
+            image: "pants_gunsuit_set.png",
+            femaleImage: "pants_gunsuit_set_f.png"
+        },
+        1926: {
+            image: "boots_gunsuit_set.png",
+            femaleImage: "boots_gunsuit_set_f.png"
+        },
+        1927: {
+            image: "trinket_gunsuit_set.png",
             femaleImage: "null"
         }
     },
@@ -8290,6 +8388,15 @@ window.EquipmentImages = {
         },
         224: {
             image: "utility_training_set.png"
+        },
+        225: {
+            image: "utility_ghost.png"
+        },
+        226: {
+            image: "utility_remote_combat_set.png"
+        },
+        227: {
+            image: "utility_gunsuit_set.png"
         }
     },
     Pet: {
